@@ -89,103 +89,109 @@ class _VolunteerLoginScreenState extends State<VolunteerLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: Color(0xFFFFC300),
+            size: 22,
+          ),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => LoginTypeScreen()),
+            );
+          },
+        ),
+      ),
       backgroundColor: Color(0xFF000814),
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Align(
-                alignment: Alignment.topLeft,
-                child: IconButton(
-                  icon: Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => LoginTypeScreen(),
+      body: SingleChildScrollView(
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                Container(
+                  padding: EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFFFC300),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.volunteer_activism,
+                    size: 64,
+                    color: Color(0xFF000814),
+                  ),
+                ),
+                SizedBox(height: 32),
+                Text(
+                  'Iniciar Sesión',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Como Voluntario',
+                  style: TextStyle(fontSize: 18, color: Color(0xFFFFD60A)),
+                ),
+                SizedBox(height: 48),
+                Container(
+                  padding: EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _ciController,
+                        decoration: InputDecoration(
+                          labelText: 'Cédula',
+                          prefixIcon: Icon(Icons.credit_card),
+                        ),
+                        keyboardType: TextInputType.number,
                       ),
-                    );
-                  },
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: Color(0xFFFFC300),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.volunteer_activism,
-                  size: 64,
-                  color: Color(0xFF000814),
-                ),
-              ),
-              SizedBox(height: 32),
-              Text(
-                'Iniciar Sesión',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Como Voluntario',
-                style: TextStyle(fontSize: 18, color: Color(0xFFFFD60A)),
-              ),
-              SizedBox(height: 48),
-              Container(
-                padding: EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _ciController,
-                      decoration: InputDecoration(
-                        labelText: 'Cédula',
-                        prefixIcon: Icon(Icons.credit_card),
+                      SizedBox(height: 16),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'Contraseña',
+                          prefixIcon: Icon(Icons.lock),
+                        ),
                       ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        prefixIcon: Icon(Icons.lock),
-                      ),
-                    ),
-                    SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
-                        child: _isLoading
-                            ? CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF000814),
+                      SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _login,
+                          child: _isLoading
+                              ? CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF000814),
+                                  ),
+                                )
+                              : Text(
+                                  'Iniciar Sesión',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              )
-                            : Text(
-                                'Iniciar Sesión',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -85,97 +85,176 @@ class LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFF000814),
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Align(
-                alignment: Alignment.topLeft,
-                child: IconButton(
-                  icon: Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => LoginTypeScreen(),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: Color(0xFFFFC300),
+            size: 22,
+          ),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => LoginTypeScreen()),
+            );
+          },
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                Container(
+                  padding: EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFFFC300),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0xFFFFC300).withOpacity(0.3),
+                        spreadRadius: 5,
+                        blurRadius: 15,
                       ),
-                    );
-                  },
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.favorite,
+                    size: 64,
+                    color: Color(0xFF000814),
+                  ),
                 ),
-              ),
-              Container(
-                padding: EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: Color(0xFFFFC300),
-                  shape: BoxShape.circle,
+                SizedBox(height: 32),
+                Text(
+                  'Iniciar Sesión',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-                child: Icon(Icons.favorite, size: 64, color: Color(0xFF000814)),
-              ),
-              SizedBox(height: 32),
-              Text(
-                'Iniciar Sesión',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                SizedBox(height: 8),
+                Text(
+                  'Como Donante',
+                  style: TextStyle(fontSize: 18, color: Color(0xFFFFD60A)),
                 ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Como Donante',
-                style: TextStyle(fontSize: 18, color: Color(0xFFFFD60A)),
-              ),
-              SizedBox(height: 48),
-              Container(
-                padding: EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _usuarioController,
-                      decoration: InputDecoration(
-                        labelText: 'Usuario',
-                        prefixIcon: Icon(Icons.person),
+                SizedBox(height: 48),
+                Container(
+                  padding: EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
                       ),
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        prefixIcon: Icon(Icons.lock),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _usuarioController,
+                        style: TextStyle(color: Color(0xFF000814)),
+                        decoration: InputDecoration(
+                          labelText: 'Usuario',
+                          labelStyle: TextStyle(
+                            color: Color(0xFF000814).withOpacity(0.6),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.person,
+                            color: Color(0xFFFFC300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Color(0xFF000814).withOpacity(0.2),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Color(0xFFFFC300),
+                              width: 2,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
-                        child: _isLoading
-                            ? CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF000814),
+                      SizedBox(height: 16),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        style: TextStyle(color: Color(0xFF000814)),
+                        decoration: InputDecoration(
+                          labelText: 'Contraseña',
+                          labelStyle: TextStyle(
+                            color: Color(0xFF000814).withOpacity(0.6),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.lock,
+                            color: Color(0xFFFFC300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Color(0xFF000814).withOpacity(0.2),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Color(0xFFFFC300),
+                              width: 2,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _login,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFFFFC300),
+                            foregroundColor: Color(0xFF000814),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: _isLoading
+                              ? CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF000814),
+                                  ),
+                                )
+                              : Text(
+                                  'Iniciar Sesión',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF000814),
+                                  ),
                                 ),
-                              )
-                            : Text(
-                                'Iniciar Sesión',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -113,7 +113,7 @@ class CampaignsScreenState extends State<CampaignsScreen>
         });
         if (mounted) {
           _showErrorSnackBar(
-            'Error al cargar campañas: ${response.statusCode}',
+            'Error al cargar campañas: ${json.decode(response.body)['message'] ?? json.decode(response.body)['error'] ?? 'Error desconocido'}',
           );
         }
       }
