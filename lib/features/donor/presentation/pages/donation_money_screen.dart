@@ -21,7 +21,7 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   String? _selectedDivisa;
   File? _comprobante;
   bool _isLoading = false;
-  final List<String> _divisas = ['Bs', 'USD', 'EUR'];
+  final List<String> _divisas = ['BS'];
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -382,7 +382,7 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
       backgroundColor: cream,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: accent,
         elevation: 0,
         leading: Container(
           margin: const EdgeInsets.all(8),
@@ -408,9 +408,12 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
         ),
         centerTitle: true,
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [cream, white],
+              colors: [
+                primaryBlue.withValues(alpha: 0.9),
+                cream.withValues(alpha: 1),
+              ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),

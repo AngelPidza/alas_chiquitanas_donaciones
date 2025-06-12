@@ -15,12 +15,19 @@ class LoginTypeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: EdgeInsets.all(32),
+                width: 200, // Puedes ajustar el tamaño general del círculo aquí
+                height: 200,
                 decoration: BoxDecoration(
                   color: Color(0xFFFFC300),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.favorite, size: 64, color: Color(0xFF000814)),
+                //Meter una imagen
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/alas.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
               SizedBox(height: 32),
               Text(
@@ -45,7 +52,7 @@ class LoginTypeScreen extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
@@ -72,7 +79,7 @@ class LoginTypeScreen extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (context) => VolunteerLoginScreen(),

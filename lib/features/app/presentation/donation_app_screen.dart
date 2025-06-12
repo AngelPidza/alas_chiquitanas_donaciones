@@ -7,6 +7,7 @@ class DonationsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'App Donaciones',
       theme: ThemeData(
         primaryColor: Color(0xFF003566),

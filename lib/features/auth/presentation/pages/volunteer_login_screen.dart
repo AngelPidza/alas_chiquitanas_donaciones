@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_donaciones_1/features/auth/presentation/pages/login_type_screen.dart';
 import 'package:flutter_donaciones_1/features/main/presentation/pages/volunteer_main_screen.dart';
 import 'package:flutter_donaciones_1/main.dart';
 import 'package:http/http.dart' as http;
@@ -95,6 +96,20 @@ class _VolunteerLoginScreenState extends State<VolunteerLoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  icon: Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LoginTypeScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
               Container(
                 padding: EdgeInsets.all(32),
                 decoration: BoxDecoration(

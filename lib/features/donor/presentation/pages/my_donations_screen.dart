@@ -492,11 +492,9 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
         ),
         child: TabBar(
           controller: _tabController,
-          labelPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          indicatorPadding: const EdgeInsets.symmetric(
-            vertical: 8,
-            horizontal: 8,
-          ),
+          padding: EdgeInsets.zero, // Elimina cualquier padding interno
+          labelPadding: EdgeInsets.zero, // Elimina el padding de las etiquetas
+          indicatorPadding: EdgeInsets.zero, // Elimina el padding del indicador
           indicator: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             gradient: const LinearGradient(colors: [accent, Color(0xFFFFD60A)]),
@@ -519,9 +517,39 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
             fontSize: 14,
           ),
           onTap: (index) => HapticFeedback.selectionClick(),
-          tabs: const [
-            Tab(icon: Icon(Icons.inventory_2_rounded), text: 'En Especie'),
-            Tab(icon: Icon(Icons.attach_money_rounded), text: 'En Dinero'),
+          tabs: [
+            Tab(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inventory_2_rounded),
+                    SizedBox(width: 8),
+                    Text('En Especie'),
+                  ],
+                ),
+              ),
+            ),
+            Tab(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.attach_money_rounded),
+                    SizedBox(width: 8),
+                    Text('En Dinero'),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

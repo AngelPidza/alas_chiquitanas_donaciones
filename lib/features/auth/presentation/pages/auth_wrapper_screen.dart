@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_donaciones_1/features/auth/presentation/pages/login_type_screen.dart';
 import 'package:flutter_donaciones_1/features/main/presentation/pages/main_screen.dart';
 import 'package:flutter_donaciones_1/features/main/presentation/pages/volunteer_main_screen.dart';
-import 'package:flutter_donaciones_1/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthWrapper extends StatefulWidget {
