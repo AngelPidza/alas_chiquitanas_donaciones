@@ -44,6 +44,8 @@ class DonationsNotifier extends StateNotifier<DonationsState> {
       final donanteId = prefs.getInt('donante_id');
       final token = prefs.getString('token');
 
+      print('donanteId: $donanteId, token: $token');
+
       if (donanteId == null || token == null) {
         state = state.copyWith(
           isLoading: false,
@@ -54,7 +56,9 @@ class DonationsNotifier extends StateNotifier<DonationsState> {
 
       // Cargar donaciones en especie
       final especieResponse = await http.get(
-        Uri.parse('https://backenddonaciones.onrender.com/api/donantes/$donanteId/donaciones'),
+        Uri.parse(
+          'https://backenddonaciones.onrender.com/api/donantes/$donanteId/donaciones',
+        ),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -63,7 +67,9 @@ class DonationsNotifier extends StateNotifier<DonationsState> {
 
       // Cargar donaciones en dinero
       final dineroResponse = await http.get(
-        Uri.parse('https://backenddonaciones.onrender.com/api/donantes/$donanteId/donaciones-dinero'),
+        Uri.parse(
+          'https://backenddonaciones.onrender.com/api/donaciones-en-dinero/getAllById/$donanteId',
+        ),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -78,16 +84,21 @@ class DonationsNotifier extends StateNotifier<DonationsState> {
         final rawDonations = json.decode(especieResponse.body);
         groupedDonations = _groupDonations(rawDonations);
       } else {
-        throw Exception('Error al cargar donaciones en especie: ${especieResponse.statusCode}');
+        throw Exception(
+          'Error al cargar donaciones en especie: ${especieResponse.statusCode}',
+        );
       }
 
       // Procesar donaciones en dinero
       if (dineroResponse.statusCode == 200) {
         final rawMoneyDonations = json.decode(dineroResponse.body);
+        print('rawMoneyDonations: $rawMoneyDonations');
         moneyDonations = rawMoneyDonations is List ? rawMoneyDonations : [];
       } else if (dineroResponse.statusCode != 404) {
         // 404 significa que no hay donaciones en dinero, lo cual es válido
-        throw Exception('Error al cargar donaciones en dinero: ${dineroResponse.statusCode}');
+        throw Exception(
+          'Error al cargar donaciones en dinero: ${dineroResponse.statusCode}',
+        );
       }
 
       state = state.copyWith(
@@ -106,32 +117,34 @@ class DonationsNotifier extends StateNotifier<DonationsState> {
 
   List<Map<String, dynamic>> _groupDonations(List<dynamic> rawDonations) {
     Map<int, Map<String, dynamic>> grouped = {};
-    
+
     for (var donation in rawDonations) {
       int donationId = donation['id_donacion_especie'];
-      
+
       if (!grouped.containsKey(donationId)) {
         grouped[donationId] = {
           'id_donacion_especie': donationId,
-          'nombre_articulo': donation['nombre_articulo'] ?? 'Artículo sin nombre',
+          'nombre_articulo':
+              donation['nombre_articulo'] ?? 'Artículo sin nombre',
           'cantidad_total': donation['cantidad'] ?? 0,
           'cantidad_restante_total': donation['cantidad_restante'] ?? 0,
           'distribuciones': <Map<String, dynamic>>[],
           'has_distributions': false,
         };
       }
-      
+
       // Si tiene paquete, es una distribución
-      if (donation['nombre_paquete'] != null && 
-          donation['ubicacion'] != null) {
+      if (donation['nombre_paquete'] != null && donation['ubicacion'] != null) {
         grouped[donationId]!['has_distributions'] = true;
-        
+
         // Verificar si ya existe esta distribución para evitar duplicados
-        bool distributionExists = (grouped[donationId]!['distribuciones'] as List)
-          .any((dist) => 
-            dist['nombre_paquete'] == donation['nombre_paquete'] &&
-            dist['ubicacion'] == donation['ubicacion']);
-        
+        bool distributionExists =
+            (grouped[donationId]!['distribuciones'] as List).any(
+              (dist) =>
+                  dist['nombre_paquete'] == donation['nombre_paquete'] &&
+                  dist['ubicacion'] == donation['ubicacion'],
+            );
+
         if (!distributionExists) {
           (grouped[donationId]!['distribuciones'] as List).add({
             'nombre_paquete': donation['nombre_paquete'],
@@ -141,7 +154,7 @@ class DonationsNotifier extends StateNotifier<DonationsState> {
         }
       }
     }
-    
+
     return grouped.values.toList();
   }
 
@@ -155,9 +168,10 @@ class DonationsNotifier extends StateNotifier<DonationsState> {
 }
 
 // Provider principal
-final donationsProvider = StateNotifierProvider<DonationsNotifier, DonationsState>((ref) {
-  return DonationsNotifier();
-});
+final donationsProvider =
+    StateNotifierProvider<DonationsNotifier, DonationsState>((ref) {
+      return DonationsNotifier();
+    });
 
 // Providers específicos para cada tipo de donación
 final groupedDonationsProvider = Provider<List<Map<String, dynamic>>>((ref) {

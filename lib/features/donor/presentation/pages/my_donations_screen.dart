@@ -408,7 +408,7 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
                     child: _buildStatContainer(
                       value: '${moneyDonations.length}',
                       label: 'Donaciones\nen Dinero',
-                      icon: Icons.attach_money_rounded,
+                      icon: Icons.money,
                       color: successColor,
                     ),
                   ),
@@ -420,7 +420,7 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
                   ),
                   Expanded(
                     child: _buildStatContainer(
-                      value: '\$${totalMoney.toStringAsFixed(0)}',
+                      value: '${totalMoney.toStringAsFixed(0)} Bs',
                       label: 'Total\nDonado',
                       icon: Icons.volunteer_activism_rounded,
                       color: accent,
@@ -543,7 +543,7 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.attach_money_rounded),
+                    Icon(Icons.money),
                     SizedBox(width: 8),
                     Text('En Dinero'),
                   ],
@@ -1285,11 +1285,7 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
                       ),
                     ],
                   ),
-                  child: Icon(
-                    Icons.attach_money_rounded,
-                    color: white,
-                    size: 28,
-                  ),
+                  child: Icon(Icons.money, color: white, size: 28),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1297,7 +1293,7 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '\$${amount.toStringAsFixed(2)}',
+                        '${amount.toStringAsFixed(2)} Bs',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,

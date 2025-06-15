@@ -2,6 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DonationMoneyPage extends StatefulWidget {
   const DonationMoneyPage({super.key, required this.campaignId});
@@ -17,16 +21,34 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   final _nombreCuentaController = TextEditingController();
   final _numeroCuentaController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _montoFormKey = GlobalKey<FormState>();
+  final _comprobanteController = ();
 
+  File? _imageFile;
   String? _selectedDivisa;
-  File? _comprobante;
   bool _isLoading = false;
   final List<String> _divisas = ['BS'];
+  String? _qrData;
 
+  // Estados para controlar la visibilidad de los formularios
+  bool _showMontoForm = true;
+  bool _showQRForm = false;
+  bool _showDatosForm = false;
+
+  // Controladores de animación
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+
+  // Controladores para las animaciones de los formularios
+
+  late AnimationController _montoFormController;
+  late AnimationController _qrFormController;
+  late AnimationController _datosFormController;
+  late Animation<Offset> _montoFormAnimation;
+  late Animation<Offset> _qrFormAnimation;
+  late Animation<Offset> _datosFormAnimation;
 
   // Paleta de colores consistente
   static const Color primaryDark = Color(0xFF0D1B2A);
@@ -46,6 +68,7 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   }
 
   void _initAnimations() {
+    // Animaciones principales
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -64,14 +87,53 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
           CurvedAnimation(parent: _slideController, curve: Curves.elasticOut),
         );
 
+    // Animaciones para los formularios
+    _montoFormController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _qrFormController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _datosFormController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _montoFormAnimation =
+        Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _montoFormController,
+            curve: Curves.elasticOut,
+          ),
+        );
+
+    _qrFormAnimation =
+        Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+          CurvedAnimation(parent: _qrFormController, curve: Curves.elasticOut),
+        );
+
+    _datosFormAnimation =
+        Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _datosFormController,
+            curve: Curves.elasticOut,
+          ),
+        );
+
     _fadeController.forward();
     _slideController.forward();
+    _montoFormController.forward();
   }
 
   @override
   void dispose() {
     _fadeController.dispose();
     _slideController.dispose();
+    _montoFormController.dispose();
+    _qrFormController.dispose();
+    _datosFormController.dispose();
     _montoController.dispose();
     _nombreCuentaController.dispose();
     _numeroCuentaController.dispose();
@@ -92,8 +154,9 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
 
       if (image != null) {
         setState(() {
-          _comprobante = File(image.path);
+          _imageFile = File(image.path);
         });
+        print('Comprobante seleccionado: ${image.path}');
         _showSuccessSnackBar('Comprobante seleccionado correctamente');
       }
     } catch (e) {
@@ -102,12 +165,22 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   }
 
   Future<void> _donateMoney() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       HapticFeedback.heavyImpact();
       return;
     }
 
-    if (_comprobante == null) {
+    if (_imageFile == null) {
       _showErrorSnackBar('Por favor selecciona un comprobante');
       return;
     }
@@ -118,9 +191,74 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
     });
 
     try {
-      // Simular proceso de donación
-      await Future.delayed(const Duration(seconds: 2));
+      final response = await http.post(
+        Uri.parse('https://backenddonaciones.onrender.com/api/donaciones'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'tipo_donacion': 'dinero',
+          'fecha_donacion': DateTime.now().toIso8601String(),
+          'id_donante': prefs.getInt('donante_id').toString(),
+          'id_campana': widget.campaignId,
+        }),
+      );
+      final responseBody = json.decode(response.body);
+      print(
+        'Procesando donación: ${responseBody['message'] ?? responseBody['error'] ?? 'Error desconocido'}',
+      );
+      if (response.statusCode != 201) {
+        _showErrorSnackBar(
+          'Error al procesar donación: ${responseBody['message'] ?? responseBody['error'] ?? 'Error desconocido'}',
+        );
+        return;
+      }
 
+      print('Donación procesada exitosamente: ${responseBody ?? 'Correcto'}');
+
+      final responseMoney = await http.put(
+        Uri.parse(
+          'https://backenddonaciones.onrender.com/api/donaciones-en-dinero/${responseBody['id']}',
+        ),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'monto': _montoController.text,
+          'divisa': 'BS',
+          'nombre_cuenta': _nombreCuentaController.text,
+          'numero_cuenta': _numeroCuentaController.text,
+          'comprobante_url': base64.encode(_imageFile!.readAsBytesSync()),
+          'estado_validacion': 'pendiente',
+        }),
+      );
+      print('''
+
+      https://backenddonaciones.onrender.com/api/donaciones-en-dinero/${responseBody['id_donacion']}
+      'monto': ${_montoController.text},
+      'divisa': $_selectedDivisa,
+      'nombre_cuenta': ${_nombreCuentaController.text},
+      'numero_cuenta': ${_numeroCuentaController.text},
+      'comprobante_url': ${base64.encode(_imageFile!.readAsBytesSync())},
+      'estado_validacion': 'pendiente',
+
+''');
+      final responseMoneyBody = json.decode(responseMoney.body);
+      print(
+        'Error al procesar donación en dinero: ${responseMoneyBody['message'] ?? responseMoneyBody['error'] ?? 'Error desconocido'} - ${responseMoney.statusCode}',
+      );
+      if (responseMoney.statusCode != 200) {
+        _showErrorSnackBar(
+          'Error al procesar donación en dinero: ${responseMoneyBody['message'] ?? responseMoneyBody['error'] ?? 'Error desconocido'}',
+        );
+        return;
+      }
+
+      print(
+        'Donación en dinero procesada exitosamente: ${responseMoneyBody['message'] ?? 'Correcto'} - ${responseMoney.statusCode}',
+      );
       if (!mounted) return;
 
       _showSuccessDialog();
@@ -133,6 +271,90 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
         });
       }
     }
+  }
+
+  Future<void> _openImagePicker(File image) async {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Comprobante seleccionado',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            color: Colors.grey[200],
+            constraints: const BoxConstraints(maxHeight: 300, maxWidth: 300),
+            child: Image.file(
+              image,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(child: Text('No se pudo cargar la imagen'));
+              },
+            ),
+          ),
+        ),
+        contentPadding: const EdgeInsets.all(20),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: accent),
+                      ),
+                    ),
+                    child: Text(
+                      'Atrás',
+                      style: TextStyle(
+                        color: accent,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _imageFile = null;
+                      });
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accent,
+                      foregroundColor: primaryDark,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'Quitar',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showErrorSnackBar(String message) {
@@ -376,6 +598,361 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
     );
   }
 
+  Future<void> _handleGenerateQR() async {
+    if (_montoFormKey.currentState!.validate()) {
+      await _generateQR();
+      if (_qrData != null) {
+        setState(() {
+          _showMontoForm = false;
+          _showDatosForm = true;
+        });
+        _datosFormController.forward();
+      }
+    }
+  }
+
+  void _handleBack() {
+    if (_showDatosForm) {
+      setState(() {
+        _showDatosForm = false;
+        _showMontoForm = true;
+      });
+    } else if (_showQRForm) {
+      setState(() {
+        _showQRForm = false;
+        _showMontoForm = true;
+      });
+    }
+  }
+
+  Future<void> _generateQR() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://devbol.com/api/create'),
+        headers: {
+          'Authorization':
+              'Basic ${base64Encode(utf8.encode('admin:secreto123'))}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'monto': double.parse(_montoController.text)}),
+      );
+
+      print('Status Code: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        List<int> bytes = base64.decode(data['cadena_base64']);
+        String decodedText = utf8.decode(bytes);
+
+        print('Base64 recibido (original): $decodedText');
+
+        // Ejemplo: TRANSACCION:684bd84eb6421|MONTO:200
+
+        // Limpiar y dar formato bonito
+        String textoLimpio =
+            '${decodedText.replaceAll(':', ' =>') // TRANSACCION => 684bd...
+            .replaceAll('|', '||') // Salto de línea entre campos
+            .replaceAllMapped(RegExp(r'[^\x20-\x7E]'), (m) => '')}Bs'; // elimina no ASCII
+
+        setState(() {
+          _qrData = textoLimpio;
+        });
+      } else {
+        _showErrorSnackBar('Error al generar el QR: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error al generar el QR: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Widget _buildMontoForm() {
+    return SlideTransition(
+      position: _montoFormAnimation,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: primaryDark.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Form(
+          key: _montoFormKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Ingrese el Monto',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: primaryDark,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildCustomTextField(
+                controller: _montoController,
+                label: 'Monto',
+                icon: Icons.attach_money_rounded,
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa un monto';
+                  }
+                  if (double.tryParse(value) == null) {
+                    return 'Por favor ingresa un monto válido';
+                  }
+                  if (double.parse(value) <= 0) {
+                    return 'El monto debe ser mayor a 0';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildCustomDropdown(),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handleGenerateQR,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accent,
+                    foregroundColor: primaryDark,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              primaryDark,
+                            ),
+                            strokeWidth: 3,
+                          ),
+                        )
+                      : const Text(
+                          'Generar QR',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatosForm() {
+    return SlideTransition(
+      position: _datosFormAnimation,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: primaryDark.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Código QR Generado',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: primaryDark,
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (_qrData != null)
+                Container(
+                  height: 200,
+                  width: 200,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cream.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: PrettyQrView.data(
+                    data: _qrData!,
+                    decoration: const PrettyQrDecoration(
+                      shape: PrettyQrSmoothSymbol(color: primaryDark),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              // Cargar el comprobante
+              GestureDetector(
+                onTap: () {
+                  if (_imageFile == null) {
+                    _pickImage(); // Selecciona imagen
+                  } else {
+                    _openImagePicker(_imageFile!); // Muestra imagen ya cargada
+                  }
+                },
+                child: Container(
+                  height: 50,
+                  width: double.infinity,
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color.fromARGB(38, 252, 249, 249),
+                    ),
+                  ),
+
+                  child: _imageFile == null
+                      ? Center(
+                          child: Text(
+                            'Toca para seleccionar un comprobante',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      : Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.check,
+                                color: Color.fromARGB(255, 99, 182, 45),
+                              ),
+                              Text(
+                                'Toca para ver el comprobante',
+                                style: const TextStyle(
+                                  color: Color.fromARGB(255, 99, 182, 45),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Datos de la Cuenta',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: primaryDark,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildCustomTextField(
+                controller: _nombreCuentaController,
+                label: 'Nombre de la Cuenta',
+                icon: Icons.account_box_rounded,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa el nombre de la cuenta';
+                  }
+                  return null;
+                },
+              ),
+              _buildCustomTextField(
+                controller: _numeroCuentaController,
+                label: 'Número de Cuenta',
+                icon: Icons.account_balance_rounded,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa el número de cuenta';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: _handleBack,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: accent),
+                        ),
+                      ),
+                      child: Text(
+                        'Atrás',
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _donateMoney,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: primaryDark,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  primaryDark,
+                                ),
+                                strokeWidth: 3,
+                              ),
+                            )
+                          : const Text(
+                              'Finalizar',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -410,10 +987,7 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                primaryBlue.withValues(alpha: 0.9),
-                cream.withValues(alpha: 1),
-              ],
+              colors: [primaryBlue.withOpacity(0.9), cream.withOpacity(1)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -421,18 +995,13 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
         ),
       ),
       body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header con ícono
                     Container(
                       margin: const EdgeInsets.only(bottom: 32),
                       padding: const EdgeInsets.all(24),
@@ -494,250 +1063,22 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
                         ],
                       ),
                     ),
-
-                    // Formulario principal
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryDark.withOpacity(0.08),
-                            blurRadius: 20,
-                            spreadRadius: 0,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Información de Donación',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: primaryDark,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          _buildCustomTextField(
-                            controller: _montoController,
-                            label: 'Monto',
-                            icon: Icons.attach_money_rounded,
-                            keyboardType: TextInputType.number,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Por favor ingresa un monto';
-                              }
-                              if (double.tryParse(value) == null) {
-                                return 'Por favor ingresa un monto válido';
-                              }
-                              if (double.parse(value) <= 0) {
-                                return 'El monto debe ser mayor a 0';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          _buildCustomDropdown(),
-
-                          _buildCustomTextField(
-                            controller: _nombreCuentaController,
-                            label: 'Nombre de la Cuenta',
-                            icon: Icons.account_box_rounded,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Por favor ingresa el nombre de la cuenta';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          _buildCustomTextField(
-                            controller: _numeroCuentaController,
-                            label: 'Número de Cuenta',
-                            icon: Icons.account_balance_rounded,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Por favor ingresa el número de cuenta';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          // Sección de comprobante
-                          const Text(
-                            'Comprobante de Pago',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: primaryDark,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Botón subir archivo
-                          Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: accent.withOpacity(0.3),
-                                width: 2,
-                                style: BorderStyle.solid,
-                              ),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: _pickImage,
-                                borderRadius: BorderRadius.circular(16),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 20,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: accent.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.upload_file_rounded,
-                                          color: accent,
-                                          size: 24,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        _comprobante == null
-                                            ? 'Subir Comprobante'
-                                            : 'Cambiar Comprobante',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: primaryDark,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // Preview de imagen
-                          if (_comprobante != null) ...[
-                            const SizedBox(height: 20),
-                            Container(
-                              width: double.infinity,
-                              height: 200,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: primaryDark.withOpacity(0.1),
-                                    blurRadius: 10,
-                                    spreadRadius: 0,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image.file(
-                                  _comprobante!,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                          ],
-
-                          const SizedBox(height: 32),
-
-                          // Botón principal
-                          Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              gradient: const LinearGradient(
-                                colors: [accent, Color(0xFFFFD60A)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: accent.withOpacity(0.4),
-                                  blurRadius: 12,
-                                  spreadRadius: 0,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: _isLoading ? null : _donateMoney,
-                                borderRadius: BorderRadius.circular(16),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 18,
-                                  ),
-                                  child: _isLoading
-                                      ? Center(
-                                          child: SizedBox(
-                                            height: 24,
-                                            width: 24,
-                                            child: CircularProgressIndicator(
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                    primaryDark,
-                                                  ),
-                                              strokeWidth: 3,
-                                            ),
-                                          ),
-                                        )
-                                      : Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.volunteer_activism_rounded,
-                                              color: primaryDark,
-                                              size: 24,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            const Text(
-                                              'Realizar Donación',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w700,
-                                                color: primaryDark,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
-          ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_showMontoForm) _buildMontoForm(),
+                  if (_showDatosForm) _buildDatosForm(),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
