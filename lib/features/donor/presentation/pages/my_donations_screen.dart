@@ -408,7 +408,7 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
                     child: _buildStatContainer(
                       value: '${moneyDonations.length}',
                       label: 'Donaciones\nen Dinero',
-                      icon: Icons.money,
+                      icon: Icons.attach_money_rounded,
                       color: successColor,
                     ),
                   ),
@@ -420,7 +420,7 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
                   ),
                   Expanded(
                     child: _buildStatContainer(
-                      value: '${totalMoney.toStringAsFixed(0)} Bs',
+                      value: '\$${totalMoney.toStringAsFixed(0)}',
                       label: 'Total\nDonado',
                       icon: Icons.volunteer_activism_rounded,
                       color: accent,
@@ -492,9 +492,8 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
         ),
         child: TabBar(
           controller: _tabController,
-          padding: EdgeInsets.zero, // Elimina cualquier padding interno
-          labelPadding: EdgeInsets.zero, // Elimina el padding de las etiquetas
-          indicatorPadding: EdgeInsets.zero, // Elimina el padding del indicador
+          labelPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          indicatorPadding: EdgeInsets.zero,
           indicator: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             gradient: const LinearGradient(colors: [accent, Color(0xFFFFD60A)]),
@@ -517,39 +516,9 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
             fontSize: 14,
           ),
           onTap: (index) => HapticFeedback.selectionClick(),
-          tabs: [
-            Tab(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 8,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.inventory_2_rounded),
-                    SizedBox(width: 8),
-                    Text('En Especie'),
-                  ],
-                ),
-              ),
-            ),
-            Tab(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 8,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.money),
-                    SizedBox(width: 8),
-                    Text('En Dinero'),
-                  ],
-                ),
-              ),
-            ),
+          tabs: const [
+            Tab(icon: Icon(Icons.inventory_2_rounded), text: 'En Especie'),
+            Tab(icon: Icon(Icons.attach_money_rounded), text: 'En Dinero'),
           ],
         ),
       ),
@@ -1285,7 +1254,11 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
                       ),
                     ],
                   ),
-                  child: Icon(Icons.money, color: white, size: 28),
+                  child: Icon(
+                    Icons.attach_money_rounded,
+                    color: white,
+                    size: 28,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1293,7 +1266,7 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${amount.toStringAsFixed(2)} Bs',
+                        '\$${amount.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
