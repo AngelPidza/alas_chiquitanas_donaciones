@@ -67,9 +67,12 @@ class _VolunteerLoginScreenState extends State<VolunteerLoginScreen> {
           MaterialPageRoute(builder: (context) => VolunteerMainScreen()),
         );
       } else {
+        final data = json.decode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${response.statusCode} - ${response.body}'),
+            content: Text(
+              'Error: ${response.statusCode} - ${data['message'] ?? data['error']}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
