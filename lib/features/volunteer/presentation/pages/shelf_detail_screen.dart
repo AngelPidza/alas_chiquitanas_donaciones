@@ -226,6 +226,12 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
               pinned: true,
               elevation: 0,
               backgroundColor: Colors.transparent,
+              collapsedHeight: kToolbarHeight,
+              stretch: true,
+              stretchTriggerOffset: 30.0,
+              onStretchTrigger: () async {
+                HapticFeedback.lightImpact();
+              },
               leading: Container(
                 margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
                 decoration: BoxDecoration(
@@ -249,37 +255,55 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
                   ),
                 ),
               ),
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(bottom: 16, left: 30),
-                title: Text(
-                  shelfName.isEmpty ? 'Estante ${widget.shelfId}' : shelfName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: white,
-                    fontSize: 20,
-                  ),
-                ),
-                background: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [primaryDark, primaryBlue],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          primaryDark.withOpacity(0.3),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+              flexibleSpace: LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints constraints) {
+                  final double percent =
+                      (constraints.maxHeight - kToolbarHeight) /
+                      (160 - kToolbarHeight);
+                  final double opacity = percent.clamp(1.0, 1.0);
+
+                  return FlexibleSpaceBar(
+                    centerTitle: true,
+                    titlePadding: EdgeInsets.only(bottom: 16),
+                    title: Opacity(
+                      opacity: opacity,
+                      child: Text(
+                        shelfName.isEmpty
+                            ? 'Estante ${widget.shelfId}'
+                            : shelfName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: white,
+                          fontSize: 20,
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                    background: Opacity(
+                      opacity: opacity,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [primaryDark, primaryBlue],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                primaryDark.withOpacity(0.3),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ];

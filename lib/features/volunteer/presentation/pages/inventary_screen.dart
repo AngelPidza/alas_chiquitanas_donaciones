@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Para HapticFeedback
+import 'package:flutter_donaciones_1/features/volunteer/presentation/pages/article_detail_screen.dart';
 import 'package:flutter_donaciones_1/features/volunteer/presentation/pages/shelf_detail_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_file/open_file.dart';
@@ -376,19 +377,34 @@ class InventoryScreenState extends State<InventoryScreen>
                   ),
                 ),
               ],
-              bottom: TabBar(
-                controller: _tabController,
-                indicatorColor: accent,
-                indicatorWeight: 3,
-                labelColor: white,
-                unselectedLabelColor: white.withOpacity(0.7),
-                tabs: const [
-                  Tab(icon: Icon(Icons.shelves), text: 'Estantes'),
-                  Tab(icon: Icon(Icons.inventory), text: 'Donaciones'),
-                ],
+
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(
+                  kToolbarHeight + 1,
+                ), // altura del TabBar + línea
+                child: Column(
+                  children: [
+                    Container(
+                      height: 1,
+                      color: Colors.white.withOpacity(0.3), // Línea divisoria
+                    ),
+                    TabBar(
+                      controller: _tabController,
+                      indicatorColor: accent,
+                      indicatorWeight: 3,
+                      labelColor: white,
+                      unselectedLabelColor: white.withOpacity(0.7),
+                      tabs: const [
+                        Tab(icon: Icon(Icons.shelves), text: 'Estantes'),
+                        Tab(icon: Icon(Icons.inventory), text: 'Donaciones'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ];
+          //Poner una linea de separación
         },
         body: TabBarView(
           controller: _tabController,
@@ -550,6 +566,9 @@ class InventoryScreenState extends State<InventoryScreen>
             HapticFeedback.selectionClick();
             // Aquí puedes agregar tu funcionalidad de navegación
             print('Donación clickeada: ${donation['id_donacion']}');
+            bool type = donation['tipo_donacion'].trim() == 'especie';
+            if (!type) return;
+            _navigateToArticleDetail(donation['id_donacion']);
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
@@ -703,6 +722,25 @@ class InventoryScreenState extends State<InventoryScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _navigateToArticleDetail(int articleId) {
+    HapticFeedback.selectionClick();
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            ArticleDetailScreen(articleId: articleId),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return SlideTransition(
+            position: animation.drive(
+              Tween(begin: const Offset(1.0, 0.0), end: Offset.zero),
+            ),
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 300),
       ),
     );
   }
