@@ -485,53 +485,271 @@ class InventoryScreenState extends State<InventoryScreen>
         itemCount: donations.length,
         itemBuilder: (context, index) {
           final donation = donations[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            elevation: 2,
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.inventory, color: accent),
-              ),
-              title: Text(
-                donation['nombre'] ?? 'Donación sin nombre',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: primaryDark,
-                ),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 4),
-                  Text(
-                    'Cantidad: ${donation['cantidad'] ?? 'No especificada'}',
-                    style: const TextStyle(color: accentBlue),
-                  ),
-                  Text(
-                    'Estado: ${donation['estado'] ?? 'No especificado'}',
-                    style: const TextStyle(color: accentBlue),
-                  ),
-                ],
-              ),
-              trailing: const Icon(Icons.chevron_right, color: accent),
-              onTap: () {
-                // Aquí puedes implementar la navegación al detalle de la donación
-                HapticFeedback.selectionClick();
-              },
-            ),
-          );
+          return _buildDonationCard(donation, index);
         },
       ),
     );
+  }
+
+  Widget _buildDonationCard(Map<String, dynamic> donation, int index) {
+    // Formatear la fecha
+    String formattedDate = '';
+    if (donation['fecha_donacion'] != null) {
+      try {
+        DateTime date = DateTime.parse(donation['fecha_donacion']);
+        formattedDate = '${date.day}/${date.month}/${date.year}';
+      } catch (e) {
+        formattedDate = 'Fecha no válida';
+      }
+    }
+
+    // Determinar el color del estado
+    Color getStatusColor(String? status) {
+      switch (status?.toLowerCase()) {
+        case 'validado':
+          return successColor;
+        case 'pendiente':
+          return accent;
+        case 'rechazado':
+          return errorColor;
+        default:
+          return lightBlue;
+      }
+    }
+
+    // Determinar el icono según el tipo de donación
+    IconData getDonationIcon(String? type) {
+      switch (type?.toLowerCase()) {
+        case 'dinero':
+          return Icons.attach_money_rounded;
+        case 'especie':
+          return Icons.inventory_2_rounded;
+        default:
+          return Icons.volunteer_activism_rounded;
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: primaryDark.withOpacity(0.05),
+            blurRadius: 10,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            // Aquí puedes agregar tu funcionalidad de navegación
+            print('Donación clickeada: ${donation['id_donacion']}');
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icono de la donación
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    getDonationIcon(donation['tipo_donacion']),
+                    color: accent,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+
+                // Información de la donación
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Donación #${donation['id_donacion'] ?? 'N/A'}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: primaryDark,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: getStatusColor(
+                                donation['estado_validacion'],
+                              ).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: getStatusColor(
+                                  donation['estado_validacion'],
+                                ).withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              donation['estado_validacion']?.toUpperCase() ??
+                                  'SIN ESTADO',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: getStatusColor(
+                                  donation['estado_validacion'],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tipo: ${donation['tipo_donacion']?.toUpperCase() ?? 'No especificado'}',
+                        style: const TextStyle(color: accentBlue, fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Fecha: $formattedDate',
+                        style: const TextStyle(color: lightBlue, fontSize: 12),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Campaña: #${donation['id_campana'] ?? 'N/A'} • Donante: #${donation['id_donante'] ?? 'N/A'}',
+                        style: const TextStyle(color: lightBlue, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Menú de estado
+                PopupMenuButton<String>(
+                  onSelected: (String newStatus) {
+                    _updateDonationStatus(
+                      donation['id_donacion'],
+                      newStatus,
+                      index,
+                    );
+                  },
+                  itemBuilder: (BuildContext context) => [
+                    const PopupMenuItem<String>(
+                      value: 'pendiente',
+                      child: Row(
+                        children: [
+                          Icon(Icons.pending, color: accent, size: 18),
+                          SizedBox(width: 8),
+                          Text('Pendiente'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'validado',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: successColor,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Validado'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'rechazado',
+                      child: Row(
+                        children: [
+                          Icon(Icons.cancel, color: errorColor, size: 18),
+                          SizedBox(width: 8),
+                          Text('Rechazado'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: lightBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.more_vert,
+                      color: lightBlue,
+                      size: 16,
+                    ),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 8,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Método para actualizar el estado de la donación
+  Future<void> _updateDonationStatus(
+    int donationId,
+    String newStatus,
+    int index,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) {
+      _showErrorSnackBar('No se encontró token de autenticación');
+      return;
+    }
+
+    try {
+      HapticFeedback.lightImpact();
+
+      final response = await http.patch(
+        Uri.parse(
+          'https://backenddonaciones.onrender.com/api/donaciones/estado/$donationId',
+        ),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'estado_validacion': newStatus}),
+      );
+      print(response.statusCode);
+      if (response.statusCode == 200) {
+        // Actualizar el estado local
+        setState(() {
+          donations[index]['estado_validacion'] = newStatus;
+        });
+
+        _showSuccessSnackBar(
+          'Estado actualizado a: ${newStatus.toUpperCase()}',
+        );
+      } else {
+        _showErrorSnackBar('Error al actualizar el estado');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error de conexión: $e');
+    }
   }
 
   Widget _buildEmptyState() {
