@@ -30,8 +30,10 @@ class InventoryScreenState extends State<InventoryScreen>
   static const Color successColor = Color(0xFF2A9D8F);
 
   List<dynamic> shelves = [];
+  List<dynamic> donations = []; // Nueva lista para donaciones
   bool isLoading = true;
   bool isDownloading = false;
+  late TabController _tabController;
 
   // Controlador de animación simple
   late AnimationController _fadeController;
@@ -40,8 +42,10 @@ class InventoryScreenState extends State<InventoryScreen>
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _initAnimations();
     _loadShelves();
+    _loadDonations(); // Nuevo método para cargar donaciones
   }
 
   void _initAnimations() {
@@ -58,6 +62,7 @@ class InventoryScreenState extends State<InventoryScreen>
 
   @override
   void dispose() {
+    _tabController.dispose();
     _fadeController.dispose();
     super.dispose();
   }
@@ -100,6 +105,39 @@ class InventoryScreenState extends State<InventoryScreen>
       setState(() {
         isLoading = false;
       });
+      _showErrorSnackBar('Error de conexión');
+    }
+  }
+
+  Future<void> _loadDonations() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://backenddonaciones.onrender.com/api/donaciones'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          donations = json.decode(response.body);
+        });
+        print(donations);
+      } else {
+        _showErrorSnackBar('Error al cargar donaciones');
+      }
+    } catch (e) {
       _showErrorSnackBar('Error de conexión');
     }
   }
@@ -274,22 +312,17 @@ class InventoryScreenState extends State<InventoryScreen>
 
     return Scaffold(
       backgroundColor: cream,
-      body: RefreshIndicator(
-        onRefresh: () async {
-          _fadeController.reset();
-          await _loadShelves();
-        },
-        color: accent,
-        backgroundColor: white,
-        child: CustomScrollView(
-          slivers: [
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
             SliverAppBar(
-              expandedHeight: 120,
+              expandedHeight: 160,
               floating: false,
               pinned: true,
               elevation: 0,
               backgroundColor: Colors.transparent,
               flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(bottom: 107, left: 30),
                 title: const Text(
                   'Inventario',
                   style: TextStyle(fontWeight: FontWeight.w700, color: white),
@@ -343,36 +376,160 @@ class InventoryScreenState extends State<InventoryScreen>
                   ),
                 ),
               ],
+              bottom: TabBar(
+                controller: _tabController,
+                indicatorColor: accent,
+                indicatorWeight: 3,
+                labelColor: white,
+                unselectedLabelColor: white.withOpacity(0.7),
+                tabs: const [
+                  Tab(icon: Icon(Icons.shelves), text: 'Estantes'),
+                  Tab(icon: Icon(Icons.inventory), text: 'Donaciones'),
+                ],
+              ),
             ),
-            if (shelves.isEmpty) ...[
-              SliverFillRemaining(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: _buildEmptyState(),
-                ),
-              ),
-            ] else ...[
-              SliverPadding(
-                padding: const EdgeInsets.all(20),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.1,
+          ];
+        },
+        body: TabBarView(
+          controller: _tabController,
+          children: [_buildShelvesView(), _buildDonationsView()],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShelvesView() {
+    if (shelves.isEmpty) {
+      return FadeTransition(opacity: _fadeAnimation, child: _buildEmptyState());
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        _fadeController.reset();
+        await _loadShelves();
+      },
+      color: accent,
+      backgroundColor: white,
+      child: GridView.builder(
+        padding: const EdgeInsets.all(20),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 1.1,
+        ),
+        itemCount: shelves.length,
+        itemBuilder: (context, index) {
+          final shelf = shelves[index];
+          return FadeTransition(
+            opacity: _fadeAnimation,
+            child: _buildShelfCard(shelf),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDonationsView() {
+    if (donations.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryDark.withOpacity(0.08),
+                    blurRadius: 20,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 8),
                   ),
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final shelf = shelves[index];
-                    return FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: _buildShelfCard(shelf),
-                    );
-                  }, childCount: shelves.length),
-                ),
+                ],
               ),
-            ],
+              child: const Column(
+                children: [
+                  Icon(Icons.inventory_2_rounded, size: 64, color: lightBlue),
+                  SizedBox(height: 16),
+                  Text(
+                    'No hay donaciones registradas',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: primaryDark,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Las donaciones aparecerán aquí cuando se registren',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: lightBlue),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadDonations,
+      color: accent,
+      backgroundColor: white,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: donations.length,
+        itemBuilder: (context, index) {
+          final donation = donations[index];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 2,
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(16),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.inventory, color: accent),
+              ),
+              title: Text(
+                donation['nombre'] ?? 'Donación sin nombre',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: primaryDark,
+                ),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 4),
+                  Text(
+                    'Cantidad: ${donation['cantidad'] ?? 'No especificada'}',
+                    style: const TextStyle(color: accentBlue),
+                  ),
+                  Text(
+                    'Estado: ${donation['estado'] ?? 'No especificado'}',
+                    style: const TextStyle(color: accentBlue),
+                  ),
+                ],
+              ),
+              trailing: const Icon(Icons.chevron_right, color: accent),
+              onTap: () {
+                // Aquí puedes implementar la navegación al detalle de la donación
+                HapticFeedback.selectionClick();
+              },
+            ),
+          );
+        },
       ),
     );
   }
