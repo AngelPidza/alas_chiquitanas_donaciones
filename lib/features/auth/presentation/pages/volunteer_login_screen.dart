@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_donaciones_1/features/auth/presentation/pages/login_type_screen.dart';
@@ -77,6 +79,10 @@ class _VolunteerLoginScreenState extends State<VolunteerLoginScreen> {
           ),
         );
       }
+    } on TimeoutException catch (_) {
+      print('⏳ Tiempo de espera agotado.');
+    } on SocketException catch (e) {
+      print('🌐 Error de red: $e');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
