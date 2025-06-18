@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:flutter_donaciones_1/features/volunteer/domain/entities/warehouse.dart';
 import 'dart:io';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/shelf.dart';
@@ -10,6 +11,21 @@ class InventoryRepositoryImpl implements InventoryRepository {
   final InventoryRemoteDataSource remoteDataSource;
 
   InventoryRepositoryImpl({required this.remoteDataSource});
+
+  @override
+  Future<Either<Failure, List<Warehouse>>> getWarehouses() async {
+    try {
+      return remoteDataSource.getWarehouses().then(
+        (warehouses) => Right(warehouses),
+      );
+    } on AuthenticationFailure catch (e) {
+      return Left(e);
+    } on ServerFailure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(ServerFailure('Error inesperado: $e'));
+    }
+  }
 
   @override
   Future<Either<Failure, List<Shelf>>> getShelves() async {

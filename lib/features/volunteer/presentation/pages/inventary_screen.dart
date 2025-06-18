@@ -1,6 +1,7 @@
 // features/inventory/presentation/pages/inventory_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_donaciones_1/features/volunteer/presentation/widgets/warehouse_card.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/colors.dart';
 import '../providers/inventory_providers.dart';
@@ -9,6 +10,7 @@ import '../widgets/shelf_card.dart';
 import '../widgets/donation_card.dart';
 import 'article_detail_screen.dart';
 import 'shelf_detail_screen.dart';
+import 'warehouse_detail_screen.dart';
 
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
@@ -29,7 +31,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     Future.microtask(
       () => ref.read(inventoryNotifierProvider.notifier).loadInitialData(),
     );
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _initAnimations();
   }
 
@@ -76,6 +78,27 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _navigateToWarehouseDetail(int warehouseId, String warehouseName) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            WarehouseDetailScreen(
+              warehouseId: warehouseId,
+              warehouseName: warehouseName,
+            ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return SlideTransition(
+            position: animation.drive(
+              Tween(begin: const Offset(1.0, 0.0), end: Offset.zero),
+            ),
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 300),
       ),
     );
   }
@@ -159,7 +182,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         },
         body: TabBarView(
           controller: _tabController,
-          children: [_buildShelvesView(), _buildDonationsView()],
+          children: [
+            _buildWarehousesView(),
+            _buildShelvesView(),
+            _buildDonationsView(),
+          ],
         ),
       ),
     );
@@ -312,12 +339,57 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
               labelColor: AppColors.white,
               unselectedLabelColor: AppColors.white.withOpacity(0.7),
               tabs: const [
+                Tab(icon: Icon(Icons.warehouse), text: 'Almacenes'),
                 Tab(icon: Icon(Icons.shelves), text: 'Estantes'),
                 Tab(icon: Icon(Icons.inventory), text: 'Donaciones'),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildWarehousesView() {
+    final warehouses = ref.watch(warehousesProvider);
+
+    if (warehouses.isEmpty) {
+      return FadeTransition(
+        opacity: _fadeAnimation,
+        child: const EmptyStateWidget(
+          icon: Icons.inventory_2_rounded,
+          title: 'No hay almacenes disponibles',
+          subtitle: 'Los almacenes aparecerán aquí cuando estén configurados',
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(inventoryNotifierProvider.notifier).refreshInventory();
+      },
+      color: AppColors.accent,
+      backgroundColor: AppColors.white,
+      child: GridView.builder(
+        padding: const EdgeInsets.all(20),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 1.1,
+        ),
+        itemCount: warehouses.length,
+        itemBuilder: (context, index) {
+          final warehouse = warehouses[index];
+          return FadeTransition(
+            opacity: _fadeAnimation,
+            child: WarehouseCard(
+              warehouse: warehouse,
+              onTap: () =>
+                  _navigateToWarehouseDetail(warehouse.id, warehouse.name),
+            ),
+          );
+        },
       ),
     );
   }

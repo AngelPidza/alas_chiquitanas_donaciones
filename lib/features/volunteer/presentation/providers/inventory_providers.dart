@@ -3,8 +3,10 @@ import 'package:open_file/open_file.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/shelf.dart';
 import '../../domain/entities/donation.dart';
+import '../../domain/entities/warehouse.dart';
 import '../../domain/usecases/get_shelves.dart';
 import '../../domain/usecases/get_donations.dart';
+import '../../domain/usecases/get_warehouses.dart';
 import '../../domain/usecases/update_donation_status.dart';
 import '../../domain/usecases/download_excel_report.dart';
 import '../../../../injection_container.dart';
@@ -13,6 +15,9 @@ import 'inventory_state.dart';
 part 'inventory_providers.g.dart';
 
 // Providers para los casos de uso
+@riverpod
+GetWarehouses getWarehouses(ref) => sl<GetWarehouses>();
+
 @riverpod
 GetShelves getShelves(ref) => sl<GetShelves>();
 
@@ -35,7 +40,33 @@ class InventoryNotifier extends _$InventoryNotifier {
   }
 
   Future<void> loadInitialData() async {
-    await Future.wait([loadShelves(), loadDonations()]);
+    await Future.wait([loadShelves(), loadDonations(), loadWarehouses()]);
+  }
+
+  Future<void> loadWarehouses() async {
+    print('[InventoryNotifier] Iniciando carga de almacenes...');
+    state = state.copyWith(isLoadingWarehouses: true, errorMessage: null);
+
+    final result = await ref.read(getWarehousesProvider).call(NoParams());
+
+    result.fold(
+      (failure) {
+        print(
+          '[InventoryNotifier] Error al cargar almacenes: ${failure.message}',
+        );
+        state = state.copyWith(
+          isLoadingWarehouses: false,
+          errorMessage: failure.message,
+        );
+      },
+      (warehouses) {
+        print('[InventoryNotifier] Almacenes cargados: ${warehouses.length}');
+        state = state.copyWith(
+          isLoadingWarehouses: false,
+          warehouses: warehouses,
+        );
+      },
+    );
   }
 
   Future<void> loadShelves() async {
@@ -168,7 +199,16 @@ class InventoryNotifier extends _$InventoryNotifier {
 @riverpod
 bool isLoading(ref) {
   final state = ref.watch(inventoryNotifierProvider);
-  return state.isLoadingShelves || state.isLoadingDonations;
+  return state.isLoadingShelves ||
+      state.isLoadingDonations ||
+      state.isLoadingWarehouses;
+}
+
+@riverpod
+List<Warehouse> warehouses(ref) {
+  return ref.watch(
+    inventoryNotifierProvider.select((state) => state.warehouses),
+  );
 }
 
 @riverpod

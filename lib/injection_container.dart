@@ -8,6 +8,7 @@ import 'features/volunteer/domain/repositories/inventory_repository.dart';
 import 'features/volunteer/domain/usecases/download_excel_report.dart';
 import 'features/volunteer/domain/usecases/get_donations.dart';
 import 'features/volunteer/domain/usecases/get_shelves.dart';
+import 'features/volunteer/domain/usecases/get_warehouses.dart';
 import 'features/volunteer/domain/usecases/update_donation_status.dart';
 
 final sl = GetIt.instance;
@@ -15,6 +16,7 @@ final sl = GetIt.instance;
 Future<void> init() async {
   //! Features - Inventory
   // Use cases
+  sl.registerLazySingleton(() => GetWarehouses(sl()));
   sl.registerLazySingleton(() => GetShelves(sl()));
   sl.registerLazySingleton(() => GetDonations(sl()));
   sl.registerLazySingleton(() => UpdateDonationStatus(sl()));

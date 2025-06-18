@@ -6,6 +6,23 @@ part of 'inventory_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+String _$getWarehousesHash() => r'd0f973b7cb450a479429e60dcb4822f54414fb76';
+
+/// See also [getWarehouses].
+@ProviderFor(getWarehouses)
+final getWarehousesProvider = AutoDisposeProvider<GetWarehouses>.internal(
+  getWarehouses,
+  name: r'getWarehousesProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$getWarehousesHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef GetWarehousesRef = AutoDisposeProviderRef<GetWarehouses>;
 String _$getShelvesHash() => r'b42ed444b93d5c9e44d4684b93f855287c9c1c91';
 
 /// See also [getShelves].
@@ -78,7 +95,7 @@ final downloadExcelReportProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DownloadExcelReportRef = AutoDisposeProviderRef<DownloadExcelReport>;
-String _$isLoadingHash() => r'37561973053dc1ecd3278cccb0b93188880712f7';
+String _$isLoadingHash() => r'2986841d15f22aba89c73b53d8b3dba1b0a74f85';
 
 /// See also [isLoading].
 @ProviderFor(isLoading)
@@ -95,6 +112,23 @@ final isLoadingProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef IsLoadingRef = AutoDisposeProviderRef<bool>;
+String _$warehousesHash() => r'69a9c9b6e0418bf1ed102d386906a02819b433c2';
+
+/// See also [warehouses].
+@ProviderFor(warehouses)
+final warehousesProvider = AutoDisposeProvider<List<Warehouse>>.internal(
+  warehouses,
+  name: r'warehousesProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$warehousesHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef WarehousesRef = AutoDisposeProviderRef<List<Warehouse>>;
 String _$shelvesHash() => r'e7e0b94211df24ff5259387862eed9ae14073794';
 
 /// See also [shelves].
@@ -146,7 +180,7 @@ final isDownloadingProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef IsDownloadingRef = AutoDisposeProviderRef<bool>;
-String _$inventoryNotifierHash() => r'ae2b7bc06683c6052f135dce09b12c207c56c761';
+String _$inventoryNotifierHash() => r'71e69c5a03559e082665e8d8352ed82037fe380c';
 
 /// See also [InventoryNotifier].
 @ProviderFor(InventoryNotifier)

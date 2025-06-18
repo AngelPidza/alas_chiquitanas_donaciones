@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -6,8 +7,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/error/failures.dart';
 import '../models/shelf_model.dart';
 import '../models/donation_model.dart';
+import '../models/warehouse_model.dart';
 
 abstract class InventoryRemoteDataSource {
+  Future<List<WarehouseModel>> getWarehouses();
   Future<List<ShelfModel>> getShelves();
   Future<List<DonationModel>> getDonations();
   Future<void> updateDonationStatus(int donationId, String status);
@@ -35,6 +38,29 @@ class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
       'Authorization': 'Bearer $token',
       'Content-Type': 'application/json',
     };
+  }
+
+  @override
+  Future<List<WarehouseModel>> getWarehouses() {
+    try {
+      final response = client.get(
+        Uri.parse('$baseUrl/almacenes'),
+        headers: _getHeaders(),
+      );
+      return response.then((response) {
+        if (response.statusCode == 200) {
+          final List<dynamic> jsonList = json.decode(response.body);
+          return jsonList.map((json) => WarehouseModel.fromJson(json)).toList();
+        } else {
+          throw ServerFailure(
+            'Error al cargar almacenes: ${response.statusCode}',
+          );
+        }
+      });
+    } catch (e) {
+      if (e is AuthenticationFailure) rethrow;
+      throw ServerFailure('Error de conexión: $e');
+    }
   }
 
   @override

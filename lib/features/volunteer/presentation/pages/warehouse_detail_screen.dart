@@ -1,21 +1,26 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Para HapticFeedback
-import 'package:flutter_donaciones_1/features/volunteer/presentation/pages/article_detail_screen.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-class ShelfDetailScreen extends StatefulWidget {
-  final int shelfId;
+import 'shelf_detail_screen.dart';
 
-  const ShelfDetailScreen({super.key, required this.shelfId});
+class WarehouseDetailScreen extends StatefulWidget {
+  final int warehouseId;
+  final String warehouseName;
+  const WarehouseDetailScreen({
+    super.key,
+    required this.warehouseId,
+    required this.warehouseName,
+  });
 
   @override
-  ShelfDetailScreenState createState() => ShelfDetailScreenState();
+  State<WarehouseDetailScreen> createState() => _WarehouseDetailScreenState();
 }
 
-class ShelfDetailScreenState extends State<ShelfDetailScreen>
+class _WarehouseDetailScreenState extends State<WarehouseDetailScreen>
     with TickerProviderStateMixin {
   // Colores del sistema de diseño
   static const Color primaryDark = Color(0xFF0D1B2A);
@@ -30,7 +35,7 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
 
   List<dynamic> items = [];
   bool isLoading = true;
-  String shelfName = '';
+  String warehouseName = '';
 
   // Controladores de animación
   late AnimationController _fadeController;
@@ -41,7 +46,7 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
   void initState() {
     super.initState();
     _initAnimations();
-    _loadShelfItems();
+    _loadWarehouseShelfs();
   }
 
   void _initAnimations() {
@@ -68,7 +73,7 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
     super.dispose();
   }
 
-  Future<void> _loadShelfItems() async {
+  Future<void> _loadWarehouseShelfs() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
@@ -82,7 +87,7 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
     try {
       final response = await http.get(
         Uri.parse(
-          'https://backenddonaciones.onrender.com/api/inventario/stock/estante/${widget.shelfId}',
+          'https://backenddonaciones.onrender.com/api/estantes/almacen/${widget.warehouseId}',
         ),
         headers: {
           'Authorization': 'Bearer $token',
@@ -95,17 +100,13 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
         setState(() {
           items = data;
           isLoading = false;
-          // Intentar obtener el nombre del estante del primer item
-          if (items.isNotEmpty) {
-            shelfName = 'Estante ${widget.shelfId}';
-          }
+          warehouseName = widget.warehouseName;
         });
 
         // Iniciar animaciones cuando los datos estén cargados
         _fadeController.forward();
         _staggerController.forward();
       } else {
-        print('Error al cargar items del estante: ${response.statusCode}');
         setState(() {
           isLoading = false;
         });
@@ -141,25 +142,6 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
-  void _navigateToArticleDetail(int articleId) {
-    HapticFeedback.selectionClick();
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            ArticleDetailScreen(articleId: articleId),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return SlideTransition(
-            position: animation.drive(
-              Tween(begin: const Offset(1.0, 0.0), end: Offset.zero),
-            ),
-            child: child,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 300),
       ),
     );
   }
@@ -202,7 +184,7 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'Cargando artículos...',
+                  'Cargando estantes...',
                   style: TextStyle(
                     fontSize: 16,
                     color: accentBlue,
@@ -269,9 +251,9 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
                     title: Opacity(
                       opacity: opacity,
                       child: Text(
-                        shelfName.isEmpty
-                            ? 'Estante ${widget.shelfId}'
-                            : shelfName,
+                        warehouseName.isEmpty
+                            ? 'Almacen ${widget.warehouseId}'
+                            : warehouseName,
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           color: white,
@@ -323,7 +305,7 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
       onRefresh: () async {
         _fadeController.reset();
         _staggerController.reset();
-        await _loadShelfItems();
+        await _loadWarehouseShelfs();
       },
       color: accent,
       backgroundColor: white,
@@ -446,7 +428,7 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _navigateToArticleDetail(item['id_articulo']),
+          onTap: () => _navigateToShelfDetail(item['id_estante']),
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -469,7 +451,7 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item['nombre_articulo'] ?? 'Sin nombre',
+                            item['nombre'] ?? 'Sin nombre',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
@@ -513,7 +495,7 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  item['descripcion'] ?? 'Sin descripción',
+                  '${item['cantidad_filas']} x ${item['cantidad_columnas']}',
                   style: const TextStyle(
                     fontSize: 16,
                     color: accentBlue,
@@ -537,7 +519,7 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
                           child: InkWell(
                             onTap: () {
                               HapticFeedback.selectionClick();
-                              _navigateToArticleDetail(item['id_articulo']);
+                              _navigateToShelfDetail(item['id_estante']);
                             },
                             borderRadius: BorderRadius.circular(16),
                             child: Container(
@@ -575,6 +557,24 @@ class ShelfDetailScreenState extends State<ShelfDetailScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _navigateToShelfDetail(int shelfId) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            ShelfDetailScreen(shelfId: shelfId),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return SlideTransition(
+            position: animation.drive(
+              Tween(begin: const Offset(1.0, 0.0), end: Offset.zero),
+            ),
+            child: child,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 300),
       ),
     );
   }
