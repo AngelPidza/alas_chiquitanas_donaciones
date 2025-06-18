@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_donaciones_1/features/auth/presentation/pages/login_type_screen.dart';
 import 'package:flutter_donaciones_1/features/main/presentation/pages/volunteer_main_screen.dart';
-import 'package:flutter_donaciones_1/main.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,10 +13,10 @@ class VolunteerLoginScreen extends StatefulWidget {
   const VolunteerLoginScreen({super.key});
 
   @override
-  _VolunteerLoginScreenState createState() => _VolunteerLoginScreenState();
+  VolunteerLoginScreenState createState() => VolunteerLoginScreenState();
 }
 
-class _VolunteerLoginScreenState extends State<VolunteerLoginScreen> {
+class VolunteerLoginScreenState extends State<VolunteerLoginScreen> {
   final _ciController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -46,8 +46,10 @@ class _VolunteerLoginScreenState extends State<VolunteerLoginScreen> {
           )
           .timeout(Duration(seconds: 10));
 
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      if (kDebugMode) {
+        print('Status Code: ${response.statusCode}');
+        print('Response Body: ${response.body}');
+      }
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
