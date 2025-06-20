@@ -1,7 +1,7 @@
 // features/inventory/presentation/pages/inventory_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_donaciones_1/features/volunteer/presentation/widgets/warehouse_card.dart';
+import '/features/volunteer/presentation/widgets/warehouse_card.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/colors.dart';
 import '../providers/inventory_providers.dart';

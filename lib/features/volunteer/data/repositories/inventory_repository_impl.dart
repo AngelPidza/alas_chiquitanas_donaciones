@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import 'package:flutter_donaciones_1/features/volunteer/domain/entities/warehouse.dart';
+import '/features/volunteer/domain/entities/warehouse.dart';
 import 'dart:io';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/shelf.dart';

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_donaciones_1/features/auth/presentation/pages/auth_wrapper_screen.dart';
-import 'package:flutter_donaciones_1/features/donor/presentation/pages/campaigns_screen.dart';
-import 'package:flutter_donaciones_1/features/donor/presentation/pages/my_donations_screen.dart';
+import '/features/auth/presentation/pages/auth_wrapper_screen.dart';
+import '/features/donor/presentation/pages/campaigns_screen.dart';
+import '/features/donor/presentation/pages/my_donations_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MainScreen extends StatefulWidget {

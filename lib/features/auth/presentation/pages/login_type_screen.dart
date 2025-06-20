@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_donaciones_1/features/auth/presentation/pages/login_screen.dart';
-import 'package:flutter_donaciones_1/features/auth/presentation/pages/volunteer_login_screen.dart';
+import '/features/auth/presentation/pages/login_screen.dart';
+import '/features/auth/presentation/pages/volunteer_login_screen.dart';
 
 class LoginTypeScreen extends StatelessWidget {
   const LoginTypeScreen({super.key});

@@ -1,4 +1,4 @@
-import 'package:flutter_donaciones_1/features/volunteer/domain/entities/warehouse.dart';
+import '/features/volunteer/domain/entities/warehouse.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../domain/entities/shelf.dart';
 import '../../domain/entities/donation.dart';

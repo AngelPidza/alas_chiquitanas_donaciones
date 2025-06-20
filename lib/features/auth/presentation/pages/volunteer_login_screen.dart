@@ -4,8 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_donaciones_1/features/auth/presentation/pages/login_type_screen.dart';
-import 'package:flutter_donaciones_1/features/main/presentation/pages/volunteer_main_screen.dart';
+import '/features/auth/presentation/pages/login_type_screen.dart';
+import '/features/main/presentation/pages/volunteer_main_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 

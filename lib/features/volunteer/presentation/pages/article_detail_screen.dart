@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Para HapticFeedback
-import 'package:flutter_donaciones_1/features/volunteer/presentation/pages/inventary_screen.dart';
+import '/features/volunteer/presentation/pages/inventary_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
