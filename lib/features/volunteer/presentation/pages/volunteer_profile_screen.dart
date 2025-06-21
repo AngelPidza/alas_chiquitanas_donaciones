@@ -73,6 +73,8 @@ class VolunteerProfileScreenState extends State<VolunteerProfileScreen>
 
   @override
   void dispose() {
+    _fadeAnimation.removeStatusListener((status) {});
+    _fadeAnimation.removeListener(() {});
     _fadeController.dispose();
     _staggerController.dispose();
     _profileImageController.dispose();
@@ -85,6 +87,7 @@ class VolunteerProfileScreenState extends State<VolunteerProfileScreen>
     final token = prefs.getString('token');
 
     if (userId == null || token == null) {
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });
@@ -101,6 +104,7 @@ class VolunteerProfileScreenState extends State<VolunteerProfileScreen>
       );
 
       if (response.statusCode == 200) {
+        if (!mounted) return;
         setState(() {
           userData = json.decode(response.body);
           isLoading = false;
@@ -111,12 +115,14 @@ class VolunteerProfileScreenState extends State<VolunteerProfileScreen>
         _staggerController.forward();
         _profileImageController.forward();
       } else {
+        if (!mounted) return;
         setState(() {
           isLoading = false;
         });
         _showErrorSnackBar('Error al cargar datos del usuario');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });
@@ -125,12 +131,13 @@ class VolunteerProfileScreenState extends State<VolunteerProfileScreen>
   }
 
   Future<void> _refreshData() async {
+    if (!mounted) return;
     setState(() {
       isRefreshing = true;
     });
 
     await _loadUserData();
-
+    if (!mounted) return;
     setState(() {
       isRefreshing = false;
     });

@@ -2,12 +2,14 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Para HapticFeedback
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/inventory_providers.dart';
 import '/features/volunteer/presentation/pages/article_detail_screen.dart';
 import '/features/volunteer/presentation/pages/inventary_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-class VolunteerDashboardScreen extends StatefulWidget {
+class VolunteerDashboardScreen extends ConsumerStatefulWidget {
   const VolunteerDashboardScreen({super.key});
 
   @override
@@ -15,7 +17,8 @@ class VolunteerDashboardScreen extends StatefulWidget {
       VolunteerDashboardScreenState();
 }
 
-class VolunteerDashboardScreenState extends State<VolunteerDashboardScreen>
+class VolunteerDashboardScreenState
+    extends ConsumerState<VolunteerDashboardScreen>
     with TickerProviderStateMixin {
   // Colores del sistema de diseño
   static const Color primaryDark = Color(0xFF0D1B2A);
@@ -235,6 +238,7 @@ class VolunteerDashboardScreenState extends State<VolunteerDashboardScreen>
           _fadeController.reset();
           _staggerController.reset();
           await _loadDashboardData();
+          ref.read(inventoryNotifierProvider.notifier).loadInitialData();
         },
         color: accent,
         backgroundColor: white,

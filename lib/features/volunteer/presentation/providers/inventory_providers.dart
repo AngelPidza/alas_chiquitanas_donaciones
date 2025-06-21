@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:open_file/open_file.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/shelf.dart';
 import '../../domain/entities/donation.dart';
@@ -93,6 +94,7 @@ class InventoryNotifier extends _$InventoryNotifier {
   }
 
   Future<void> loadDonations() async {
+    print('Token de usuario: ${sl<SharedPreferences>().getString('token')}');
     print('[InventoryNotifier] Iniciando carga de donaciones...');
     state = state.copyWith(isLoadingDonations: true, errorMessage: null);
 
@@ -100,9 +102,9 @@ class InventoryNotifier extends _$InventoryNotifier {
 
     result.fold(
       (failure) {
-        print(
-          '[InventoryNotifier] Error al cargar donaciones: ${failure.message}',
-        );
+        print('''[InventoryNotifier] 
+          Error al cargar donaciones: ${failure.message} 
+          ''');
         state = state.copyWith(
           isLoadingDonations: false,
           errorMessage: failure.message,
@@ -120,6 +122,9 @@ class InventoryNotifier extends _$InventoryNotifier {
     String newStatus,
     int index,
   ) async {
+    print(
+      '[InventoryNotifier] Actualizando estado de donación: $donationId a $newStatus...',
+    );
     final result = await ref
         .read(updateDonationStatusProvider)
         .call(UpdateDonationParams(donationId: donationId, status: newStatus));

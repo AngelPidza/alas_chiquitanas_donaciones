@@ -22,7 +22,6 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   final _numeroCuentaController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final _montoFormKey = GlobalKey<FormState>();
-  final _comprobanteController = ();
 
   File? _imageFile;
   String? _selectedDivisa;
@@ -38,8 +37,6 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   // Controladores de animación
   late AnimationController _fadeController;
   late AnimationController _slideController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
 
   // Controladores para las animaciones de los formularios
 
@@ -47,7 +44,6 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   late AnimationController _qrFormController;
   late AnimationController _datosFormController;
   late Animation<Offset> _montoFormAnimation;
-  late Animation<Offset> _qrFormAnimation;
   late Animation<Offset> _datosFormAnimation;
 
   // Paleta de colores consistente
@@ -78,15 +74,6 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
-    );
-
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-          CurvedAnimation(parent: _slideController, curve: Curves.elasticOut),
-        );
-
     // Animaciones para los formularios
     _montoFormController = AnimationController(
       duration: const Duration(milliseconds: 600),
@@ -107,11 +94,6 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
             parent: _montoFormController,
             curve: Curves.elasticOut,
           ),
-        );
-
-    _qrFormAnimation =
-        Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
-          CurvedAnimation(parent: _qrFormController, curve: Curves.elasticOut),
         );
 
     _datosFormAnimation =

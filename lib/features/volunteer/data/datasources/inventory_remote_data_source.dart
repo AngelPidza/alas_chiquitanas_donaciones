@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/network/dio_client.dart';
 import '../models/shelf_model.dart';
 import '../models/donation_model.dart';
 import '../models/warehouse_model.dart';
@@ -18,142 +18,79 @@ abstract class InventoryRemoteDataSource {
 }
 
 class InventoryRemoteDataSourceImpl implements InventoryRemoteDataSource {
-  final http.Client client;
+  final DioClient dioClient;
   final SharedPreferences sharedPreferences;
-  static const String baseUrl = 'https://backenddonaciones.onrender.com/api';
 
   InventoryRemoteDataSourceImpl({
-    required this.client,
+    required this.dioClient,
     required this.sharedPreferences,
   });
 
-  Map<String, String> _getHeaders() {
-    final token = sharedPreferences.getString('token');
-    if (token == null) {
-      throw const AuthenticationFailure(
-        'No se encontró token de autenticación',
-      );
-    }
-    return {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    };
-  }
-
   @override
-  Future<List<WarehouseModel>> getWarehouses() {
+  Future<List<WarehouseModel>> getWarehouses() async {
     try {
-      final response = client.get(
-        Uri.parse('$baseUrl/almacenes'),
-        headers: _getHeaders(),
-      );
-      return response.then((response) {
-        if (response.statusCode == 200) {
-          final List<dynamic> jsonList = json.decode(response.body);
-          return jsonList.map((json) => WarehouseModel.fromJson(json)).toList();
-        } else {
-          throw ServerFailure(
-            'Error al cargar almacenes: ${response.statusCode}',
-          );
-        }
-      });
-    } catch (e) {
-      if (e is AuthenticationFailure) rethrow;
-      throw ServerFailure('Error de conexión: $e');
+      final response = await dioClient.get('/almacenes');
+      final List<dynamic> jsonResponse = response.data;
+      return jsonResponse.map((json) => WarehouseModel.fromJson(json)).toList();
+    } catch (error) {
+      throw ServerFailure(error.toString());
     }
   }
 
   @override
   Future<List<ShelfModel>> getShelves() async {
     try {
-      final response = await client.get(
-        Uri.parse('$baseUrl/estantes'),
-        headers: _getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
-        return jsonList.map((json) => ShelfModel.fromJson(json)).toList();
-      } else {
-        throw ServerFailure('Error al cargar estantes: ${response.statusCode}');
-      }
-    } catch (e) {
-      if (e is AuthenticationFailure) rethrow;
-      throw ServerFailure('Error de conexión: $e');
+      final response = await dioClient.get('/estantes');
+      final List<dynamic> jsonResponse = response.data;
+      return jsonResponse.map((json) => ShelfModel.fromJson(json)).toList();
+    } catch (error) {
+      throw ServerFailure(error.toString());
     }
   }
 
   @override
   Future<List<DonationModel>> getDonations() async {
     try {
-      final response = await client.get(
-        Uri.parse('$baseUrl/donaciones'),
-        headers: _getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
-        return jsonList.map((json) => DonationModel.fromJson(json)).toList();
-      } else {
-        throw ServerFailure(
-          'Error al cargar donaciones: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      if (e is AuthenticationFailure) rethrow;
-      throw ServerFailure('Error de conexión: $e');
+      final response = await dioClient.get('/donaciones');
+      final List<dynamic> jsonResponse = response.data;
+      return jsonResponse.map((json) => DonationModel.fromJson(json)).toList();
+    } catch (error) {
+      throw ServerFailure(error.toString());
     }
   }
 
   @override
   Future<void> updateDonationStatus(int donationId, String status) async {
+    print(
+      '[InventoryRemoteDataSource] Actualizando estado de donación: $donationId a $status...',
+    );
     try {
-      final response = await client.patch(
-        Uri.parse('$baseUrl/donaciones/estado/$donationId'),
-        headers: _getHeaders(),
-        body: json.encode({'estado_validacion': status}),
+      await dioClient.patch(
+        '/donaciones/estado/$donationId',
+        data: {'estado_validacion': status},
       );
-
-      if (response.statusCode != 200) {
-        throw ServerFailure(
-          'Error al actualizar el estado: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      if (e is AuthenticationFailure) rethrow;
-      throw ServerFailure('Error de conexión: $e');
+    } catch (error) {
+      throw ServerFailure(error.toString());
     }
   }
 
   @override
   Future<File> downloadExcelReport() async {
     try {
-      final token = sharedPreferences.getString('token');
-      if (token == null) {
-        throw const AuthenticationFailure(
-          'No se encontró token de autenticación',
-        );
-      }
-
-      final response = await client.get(
-        Uri.parse('$baseUrl/reportes/stock/excel'),
-        headers: {'Authorization': 'Bearer $token'},
+      final response = await dioClient.get(
+        '/reportes/stock/excel',
+        options: Options(responseType: ResponseType.bytes),
       );
 
-      if (response.statusCode == 200) {
-        final directory = await getApplicationDocumentsDirectory();
-        final filePath = '${directory.path}/inventario.xlsx';
-        final file = File(filePath);
-        await file.writeAsBytes(response.bodyBytes);
-        return file;
-      } else {
-        throw ServerFailure(
-          'Error al descargar reporte: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      if (e is AuthenticationFailure) rethrow;
-      throw ServerFailure('Error al descargar: $e');
+      // Guardar el archivo en el dispositivo
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final file = File('${directory.path}/reporte_stock_$timestamp.xlsx');
+
+      await file.writeAsBytes(response.data);
+      return file;
+    } catch (error) {
+      throw ServerFailure(error.toString());
     }
   }
 }

@@ -439,6 +439,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
 
   Widget _buildDonationsView() {
     final donations = ref.watch(donationsProvider);
+    print('Cantidad de donaciones: ${donations.length}');
 
     if (donations.isEmpty) {
       return const EmptyStateWidget(

@@ -1,6 +1,6 @@
 import 'package:get_it/get_it.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'core/network/dio_client.dart';
 
 import 'features/volunteer/data/datasources/inventory_remote_data_source.dart';
 import 'features/volunteer/data/repositories/inventory_repository_impl.dart';
@@ -14,7 +14,26 @@ import 'features/volunteer/domain/usecases/update_donation_status.dart';
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  //! Features - Inventory
+  // //! Features - Donor
+  // // Use cases
+  // sl.registerLazySingleton(() => GetWarehouses(sl()));
+  // sl.registerLazySingleton(() => GetShelves(sl()));
+  // sl.registerLazySingleton(() => GetDonations(sl()));
+  // sl.registerLazySingleton(() => UpdateDonationStatus(sl()));
+  // sl.registerLazySingleton(() => DownloadExcelReport(sl()));
+
+  // // Repository
+  // sl.registerLazySingleton<InventoryRepository>(
+  //   () => InventoryRepositoryImpl(remoteDataSource: sl()),
+  // );
+
+  // // Data sources
+  // sl.registerLazySingleton<InventoryRemoteDataSource>(
+  //   () =>
+  //       InventoryRemoteDataSourceImpl(dioClient: sl(), sharedPreferences: sl()),
+  // );
+
+  //! Features - Volunteer
   // Use cases
   sl.registerLazySingleton(() => GetWarehouses(sl()));
   sl.registerLazySingleton(() => GetShelves(sl()));
@@ -29,11 +48,12 @@ Future<void> init() async {
 
   // Data sources
   sl.registerLazySingleton<InventoryRemoteDataSource>(
-    () => InventoryRemoteDataSourceImpl(client: sl(), sharedPreferences: sl()),
+    () =>
+        InventoryRemoteDataSourceImpl(dioClient: sl(), sharedPreferences: sl()),
   );
 
   //! External
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
-  sl.registerLazySingleton(() => http.Client());
+  sl.registerLazySingleton(() => DioClient(sharedPreferences: sl()));
 }

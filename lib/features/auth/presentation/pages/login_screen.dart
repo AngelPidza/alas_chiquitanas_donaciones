@@ -55,19 +55,23 @@ class LoginScreenState extends State<LoginScreen> {
         await prefs.setInt('donante_id', data['donante']['id']);
         await prefs.setString('donante_nombre', data['donante']['nombres']);
         await prefs.setString('user_type', 'donante');
-
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => MainScreen()),
-        );
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => MainScreen()),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Credenciales incorrectas'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Credenciales incorrectas'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error de conexión'),

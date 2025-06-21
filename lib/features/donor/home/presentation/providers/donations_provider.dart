@@ -92,7 +92,6 @@ class DonationsNotifier extends StateNotifier<DonationsState> {
       // Procesar donaciones en dinero
       if (dineroResponse.statusCode == 200) {
         final rawMoneyDonations = json.decode(dineroResponse.body);
-        print('rawMoneyDonations: $rawMoneyDonations');
         moneyDonations = rawMoneyDonations is List ? rawMoneyDonations : [];
       } else if (dineroResponse.statusCode != 404) {
         // 404 significa que no hay donaciones en dinero, lo cual es válido

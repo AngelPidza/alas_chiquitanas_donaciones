@@ -103,26 +103,6 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
     });
   }
 
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.error_outline_rounded, color: white),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(message, style: const TextStyle(color: white)),
-            ),
-          ],
-        ),
-        backgroundColor: errorColor,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
   Widget _buildLoadingState() {
     return Container(
       decoration: const BoxDecoration(
@@ -484,7 +464,7 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: primaryDark.withOpacity(0.08),
+              color: primaryDark.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -493,13 +473,14 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
         child: TabBar(
           controller: _tabController,
           labelPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          indicatorPadding: EdgeInsets.zero,
+          indicatorPadding: const EdgeInsets.all(4),
+          indicatorSize: TabBarIndicatorSize.tab,
           indicator: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             gradient: const LinearGradient(colors: [accent, Color(0xFFFFD60A)]),
             boxShadow: [
               BoxShadow(
-                color: accent.withOpacity(0.3),
+                color: accent.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -970,61 +951,58 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
               const SizedBox(height: 16),
 
               if (hasDistributions)
-                ...distributions
-                    .map(
-                      (dist) => Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: lightBlue.withOpacity(0.2)),
+                ...distributions.map(
+                  (dist) => Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: lightBlue.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: primaryBlue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.local_shipping_rounded,
+                            size: 16,
+                            color: primaryBlue,
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: primaryBlue.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                dist['nombre_paquete'] ?? 'Paquete sin nombre',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: primaryDark,
+                                ),
                               ),
-                              child: Icon(
-                                Icons.local_shipping_rounded,
-                                size: 16,
-                                color: primaryBlue,
+                              const SizedBox(height: 2),
+                              Text(
+                                dist['ubicacion'] ??
+                                    'Ubicación no especificada',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: accentBlue,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    dist['nombre_paquete'] ??
-                                        'Paquete sin nombre',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: primaryDark,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    dist['ubicacion'] ??
-                                        'Ubicación no especificada',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: accentBlue,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    )
-                    .toList()
+                      ],
+                    ),
+                  ),
+                )
               else
                 Container(
                   padding: const EdgeInsets.all(16),

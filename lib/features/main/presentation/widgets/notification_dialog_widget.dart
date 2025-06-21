@@ -20,7 +20,6 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog>
   static const Color accentBlue = Color(0xFF415A77);
   static const Color lightBlue = Color(0xFF778DA9);
   static const Color cream = Color(0xFFE0E1DD);
-  static const Color accent = Color(0xFFFFB700);
   static const Color white = Color(0xFFFFFFFE);
   static const Color errorColor = Color(0xFFE63946);
   static const Color successColor = Color(0xFF2A9D8F);
@@ -82,7 +81,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: primaryDark.withOpacity(0.15),
+                color: primaryDark.withValues(alpha: 0.15),
                 blurRadius: 30,
                 spreadRadius: 0,
                 offset: const Offset(0, 12),
@@ -132,7 +131,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: white.withOpacity(0.15),
+                color: white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(Icons.notifications_active, color: white, size: 24),
@@ -157,7 +156,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog>
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: white.withOpacity(0.8),
+                        color: white.withValues(alpha: 0.8),
                       ),
                     ),
                 ],
@@ -176,7 +175,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog>
       margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: white.withOpacity(0.3), width: 1.5),
+        border: Border.all(color: white.withValues(alpha: 0.3), width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
@@ -212,7 +211,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog>
   Widget _buildCloseButton() {
     return Container(
       decoration: BoxDecoration(
-        color: white.withOpacity(0.15),
+        color: white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Material(
@@ -248,7 +247,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog>
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: cream.withOpacity(0.5),
+                color: cream.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
@@ -321,12 +320,14 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog>
             color: white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _getNotificationColor(notification.type).withOpacity(0.2),
+              color: _getNotificationColor(
+                notification.type,
+              ).withValues(alpha: 0.2),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: primaryDark.withOpacity(0.06),
+                color: primaryDark.withValues(alpha: 0.06),
                 blurRadius: 12,
                 spreadRadius: 0,
                 offset: const Offset(0, 4),
@@ -388,7 +389,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog>
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: _getNotificationColor(type).withOpacity(0.1),
+        color: _getNotificationColor(type).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Icon(
@@ -402,7 +403,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog>
   Widget _buildRemoveButton(notification) {
     return Container(
       decoration: BoxDecoration(
-        color: errorColor.withOpacity(0.1),
+        color: errorColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Material(
@@ -462,7 +463,7 @@ class _NotificationsDialogState extends ConsumerState<NotificationsDialog>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: errorColor.withOpacity(0.1),
+                color: errorColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
