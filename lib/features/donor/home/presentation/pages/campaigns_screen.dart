@@ -1,13 +1,12 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_donaciones_1/features/donor/home/domain/entities/campaign.dart';
 import 'package:flutter_donaciones_1/features/donor/home/presentation/providers/campaigns_provider.dart';
-import 'package:flutter_donaciones_1/features/volunteer/presentation/providers/inventory_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/constants/colors.dart';
 import 'donation_money_screen.dart';
+import 'donation_request_screen.dart';
 import '../../../map/presentation/pages/map_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,11 +21,12 @@ class CampaignsScreen extends ConsumerStatefulWidget {
 class CampaignsScreenState extends ConsumerState<CampaignsScreen>
     with TickerProviderStateMixin {
   bool _isMounted = false;
-  List<dynamic> campaigns = [];
+  List<Campaign> campaigns = [];
   bool isLoading = true;
   String? _token;
   late AnimationController _fadeController;
   late AnimationController _staggerController;
+  bool _animationsInitialized = false;
 
   // Paleta de colores consistente
   static const Color primaryDark = Color(0xFF0D1B2A);
@@ -44,7 +44,7 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
     super.initState();
     _isMounted = true;
     _initAnimations();
-    // _loadCampaigns();
+    _loadToken();
   }
 
   void _initAnimations() {
@@ -58,6 +58,29 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
     );
   }
 
+  Future<void> _loadToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString('token');
+    // Recargar campañas automáticamente al obtener el token
+    if (mounted) {
+      ref.read(campaignsNotifierProvider.notifier).refreshCampaigns();
+    }
+  }
+
+  void _startAnimations() {
+    if (!_animationsInitialized) {
+      _animationsInitialized = true;
+      _fadeController.forward();
+      _staggerController.forward();
+    }
+  }
+
+  void _resetAnimations() {
+    _animationsInitialized = false;
+    _fadeController.reset();
+    _staggerController.reset();
+  }
+
   @override
   void dispose() {
     _fadeController.dispose();
@@ -65,75 +88,6 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
     _isMounted = false;
     super.dispose();
   }
-
-  // Future<void> _loadCampaigns() async {
-  //   try {
-  //     if (kDebugMode) {
-  //       print('Cargando campañas...');
-  //     }
-  //     final prefs = await SharedPreferences.getInstance();
-  //     final token = prefs.getString('token');
-  //     _token = token;
-
-  //     if (token == null) {
-  //       if (!_isMounted) return;
-  //       setState(() {
-  //         isLoading = false;
-  //       });
-  //       if (mounted) {
-  //         _showErrorSnackBar('Token no encontrado. Inicia sesión nuevamente.');
-  //       }
-  //       return;
-  //     }
-
-  //     final response = await http
-  //         .get(
-  //           Uri.parse('https://backenddonaciones.onrender.com/api/campanas'),
-  //           headers: {
-  //             'Authorization': 'Bearer $token',
-  //             'Content-Type': 'application/json',
-  //           },
-  //         )
-  //         .timeout(Duration(seconds: 30));
-
-  //     if (kDebugMode) {
-  //       print('Status code: ${response.statusCode}');
-  //       print('Response body: ${response.body}');
-  //     }
-
-  //     if (response.statusCode == 200) {
-  //       final data = json.decode(response.body);
-  //       if (!_isMounted) return;
-  //       setState(() {
-  //         campaigns = data is List ? data : [];
-  //         isLoading = false;
-  //       });
-  //       _fadeController.forward();
-  //       _staggerController.forward();
-  //     } else {
-  //       if (!_isMounted) return;
-  //       setState(() {
-  //         isLoading = false;
-  //       });
-  //       if (mounted) {
-  //         _showErrorSnackBar(
-  //           'Error al cargar campañas: ${json.decode(response.body)['message'] ?? json.decode(response.body)['error'] ?? 'Error desconocido'}',
-  //         );
-  //       }
-  //     }
-  //   } catch (e) {
-  //     if (kDebugMode) {
-  //       print('Error loading campaigns: $e');
-  //     }
-  //     if (!_isMounted) return;
-  //     setState(() {
-  //       isLoading = false;
-  //     });
-  //     if (mounted) {
-  //       _showErrorSnackBar('Error al cargar campañas: $e');
-  //     }
-  //   }
-  // }
 
   void _showSnackBar(String message, Color color, IconData icon) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -338,16 +292,16 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
   @override
   Widget build(BuildContext context) {
     // Escuchar cambios en los mensajes de error/éxito
-    ref.listen(
-      campaignsNotifierProvider.select((state) => state.successMessage),
-      (previous, next) {
-        if (next != null) {
-          _showSnackBar(next, AppColors.errorColor, Icons.error_outline);
-          // Limpiar el mensaje después de mostrarlo
-          ref.read(inventoryNotifierProvider.notifier).clearMessages();
-        }
-      },
-    );
+    ref.listen(campaignsNotifierProvider.select((state) => state.errorMessage), (
+      previous,
+      next,
+    ) {
+      if (next != null) {
+        _showSnackBar(next, AppColors.errorColor, Icons.error_outline);
+        // Corregido: usar campaignsNotifierProvider en lugar de inventoryNotifierProvider
+        ref.read(campaignsNotifierProvider.notifier).clearMessages();
+      }
+    });
 
     ref.listen(
       campaignsNotifierProvider.select((state) => state.successMessage),
@@ -358,14 +312,22 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
             AppColors.successColor,
             Icons.check_circle_outline,
           );
-          // Limpiar el mensaje después de mostrarlo
-          ref.read(inventoryNotifierProvider.notifier).clearMessages();
+          // Corregido: usar campaignsNotifierProvider en lugar de inventoryNotifierProvider
+          ref.read(campaignsNotifierProvider.notifier).clearMessages();
         }
       },
     );
 
-    final isLoading = ref.watch(isLoadingCampaignsProvider);
     campaigns = ref.watch(campaignsProvider);
+    final isLoading = ref.watch(isLoadingCampaignsProvider);
+
+    // Iniciar animaciones cuando las campañas se cargan
+    if (!isLoading && campaigns.isNotEmpty && !_animationsInitialized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startAnimations();
+      });
+    }
+
     if (isLoading) {
       return _buildLoadingState();
     }
@@ -374,8 +336,7 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
       return RefreshIndicator(
         onRefresh: () async {
           HapticFeedback.lightImpact();
-          // await _loadCampaigns();
-          ref.watch(campaignsNotifierProvider.notifier).refreshCampaigns();
+          ref.read(campaignsNotifierProvider.notifier).refreshCampaigns();
         },
         color: accent,
         backgroundColor: white,
@@ -400,9 +361,9 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
       child: RefreshIndicator(
         onRefresh: () async {
           HapticFeedback.lightImpact();
-          _fadeController.reset();
-          _staggerController.reset();
-          // await _loadCampaigns();
+          _resetAnimations();
+          await ref.read(campaignsNotifierProvider.notifier).refreshCampaigns();
+          // Las animaciones se reiniciarán automáticamente cuando se recarguen las campañas
         },
         color: accent,
         backgroundColor: white,
@@ -410,6 +371,9 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
           padding: const EdgeInsets.all(20),
           itemCount: campaigns.length,
           itemBuilder: (context, index) {
+            if (kDebugMode) {
+              print('Building item at index: $index');
+            }
             final campaign = campaigns[index];
             return FadeTransition(
               opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -460,9 +424,7 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
                           PageRouteBuilder(
                             pageBuilder:
                                 (context, animation, secondaryAnimation) =>
-                                    MapScreen(
-                                      campaignId: campaign['id_campana'],
-                                    ),
+                                    MapScreen(campaignId: campaign.id),
                             transitionsBuilder:
                                 (
                                   context,
@@ -505,7 +467,7 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
                               ),
                               child: FutureBuilder<Widget>(
                                 future: _buildCampaignImage(
-                                  campaign['imagen_url'],
+                                  campaign.imageUrl,
                                   _token,
                                 ),
                                 builder: (context, snapshot) {
@@ -542,8 +504,7 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
                               children: [
                                 // Título
                                 Text(
-                                  campaign['nombre_campana'] ??
-                                      'Campaña sin nombre',
+                                  campaign.name,
                                   style: const TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w700,
@@ -555,7 +516,7 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
 
                                 // Descripción
                                 Text(
-                                  campaign['descripcion'] ?? 'Sin descripción',
+                                  campaign.description,
                                   style: const TextStyle(
                                     fontSize: 16,
                                     color: accentBlue,
@@ -595,7 +556,7 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Organizador: ${campaign['organizador'] ?? 'No especificado'}',
+                                        'Organizador: ${campaign.organizer}',
                                         style: const TextStyle(
                                           fontSize: 14,
                                           color: primaryDark,
@@ -606,195 +567,295 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
                                   ),
                                 ),
                                 const SizedBox(height: 20),
-
                                 // Botones de acción
-                                Row(
+                                Column(
                                   children: [
-                                    // Botón ver puntos
-                                    Expanded(
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          border: Border.all(
-                                            color: accent.withOpacity(0.3),
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        child: Material(
-                                          color: Colors.transparent,
-                                          child: InkWell(
-                                            onTap: () {
-                                              HapticFeedback.selectionClick();
-                                              Navigator.of(context).push(
-                                                PageRouteBuilder(
-                                                  pageBuilder:
-                                                      (
-                                                        context,
-                                                        animation,
-                                                        secondaryAnimation,
-                                                      ) => MapScreen(
-                                                        campaignId:
-                                                            campaign['id_campana'],
-                                                      ),
-                                                  transitionsBuilder:
-                                                      (
-                                                        context,
-                                                        animation,
-                                                        secondaryAnimation,
-                                                        child,
-                                                      ) {
-                                                        return SlideTransition(
-                                                          position: animation
-                                                              .drive(
-                                                                Tween(
-                                                                  begin:
-                                                                      const Offset(
-                                                                        1.0,
-                                                                        0.0,
-                                                                      ),
-                                                                  end: Offset
-                                                                      .zero,
-                                                                ),
-                                                              ),
-                                                          child: child,
-                                                        );
-                                                      },
-                                                ),
-                                              );
-                                            },
-                                            borderRadius: BorderRadius.circular(
-                                              16,
+                                    Row(
+                                      children: [
+                                        // Botón ver puntos
+                                        Expanded(
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              border: Border.all(
+                                                color: accent.withOpacity(0.3),
+                                                width: 1.5,
+                                              ),
                                             ),
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 16,
-                                                    vertical: 12,
-                                                  ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.location_on_rounded,
-                                                    size: 18,
-                                                    color: accent,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  const Text(
-                                                    'Ver puntos',
-                                                    style: TextStyle(
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: primaryDark,
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                onTap: () {
+                                                  HapticFeedback.selectionClick();
+                                                  Navigator.of(context).push(
+                                                    PageRouteBuilder(
+                                                      pageBuilder:
+                                                          (
+                                                            context,
+                                                            animation,
+                                                            secondaryAnimation,
+                                                          ) => MapScreen(
+                                                            campaignId:
+                                                                campaign.id,
+                                                          ),
+                                                      transitionsBuilder:
+                                                          (
+                                                            context,
+                                                            animation,
+                                                            secondaryAnimation,
+                                                            child,
+                                                          ) {
+                                                            return SlideTransition(
+                                                              position: animation
+                                                                  .drive(
+                                                                    Tween(
+                                                                      begin:
+                                                                          const Offset(
+                                                                            1.0,
+                                                                            0.0,
+                                                                          ),
+                                                                      end: Offset
+                                                                          .zero,
+                                                                    ),
+                                                                  ),
+                                                              child: child,
+                                                            );
+                                                          },
                                                     ),
+                                                  );
+                                                },
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 16,
+                                                        vertical: 12,
+                                                      ),
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Icon(
+                                                        Icons
+                                                            .location_on_rounded,
+                                                        size: 18,
+                                                        color: accent,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      const Text(
+                                                        'Ver puntos',
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: primaryDark,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ],
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
+                                        const SizedBox(width: 12),
 
-                                    // Botón donar dinero
-                                    Expanded(
-                                      child: Container(
-                                        decoration: BoxDecoration(
+                                        // Botón donar dinero
+                                        Expanded(
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              gradient: const LinearGradient(
+                                                colors: [
+                                                  accent,
+                                                  Color(0xFFFFD60A),
+                                                ],
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: accent.withOpacity(
+                                                    0.3,
+                                                  ),
+                                                  blurRadius: 8,
+                                                  spreadRadius: 0,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                onTap: () {
+                                                  HapticFeedback.lightImpact();
+                                                  Navigator.of(context).push(
+                                                    PageRouteBuilder(
+                                                      pageBuilder:
+                                                          (
+                                                            context,
+                                                            animation,
+                                                            secondaryAnimation,
+                                                          ) =>
+                                                              DonationMoneyPage(
+                                                                campaignId:
+                                                                    campaign.id,
+                                                              ),
+                                                      transitionsBuilder:
+                                                          (
+                                                            context,
+                                                            animation,
+                                                            secondaryAnimation,
+                                                            child,
+                                                          ) {
+                                                            return SlideTransition(
+                                                              position: animation
+                                                                  .drive(
+                                                                    Tween(
+                                                                      begin:
+                                                                          const Offset(
+                                                                            0.0,
+                                                                            1.0,
+                                                                          ),
+                                                                      end: Offset
+                                                                          .zero,
+                                                                    ),
+                                                                  ),
+                                                              child: child,
+                                                            );
+                                                          },
+                                                    ),
+                                                  );
+                                                },
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 16,
+                                                        vertical: 12,
+                                                      ),
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      const Icon(
+                                                        Icons
+                                                            .volunteer_activism_rounded,
+                                                        size: 18,
+                                                        color: primaryDark,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      const Text(
+                                                        'Donar',
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color: primaryDark,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    // Botón solicitar donación
+                                    Container(
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(16),
+                                        color: primaryBlue,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: primaryBlue.withOpacity(0.3),
+                                            blurRadius: 8,
+                                            spreadRadius: 0,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          onTap: () {
+                                            HapticFeedback.lightImpact();
+                                            Navigator.of(context).push(
+                                              PageRouteBuilder(
+                                                pageBuilder:
+                                                    (
+                                                      context,
+                                                      animation,
+                                                      secondaryAnimation,
+                                                    ) => DonationRequestPage(
+                                                      campaignId: campaign.id
+                                                          .toString(),
+                                                      campaignName:
+                                                          campaign.name,
+                                                    ),
+                                                transitionsBuilder:
+                                                    (
+                                                      context,
+                                                      animation,
+                                                      secondaryAnimation,
+                                                      child,
+                                                    ) {
+                                                      return SlideTransition(
+                                                        position: animation
+                                                            .drive(
+                                                              Tween(
+                                                                begin:
+                                                                    const Offset(
+                                                                      0.0,
+                                                                      1.0,
+                                                                    ),
+                                                                end:
+                                                                    Offset.zero,
+                                                              ),
+                                                            ),
+                                                        child: child,
+                                                      );
+                                                    },
+                                              ),
+                                            );
+                                          },
                                           borderRadius: BorderRadius.circular(
                                             16,
                                           ),
-                                          gradient: const LinearGradient(
-                                            colors: [accent, Color(0xFFFFD60A)],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: accent.withOpacity(0.3),
-                                              blurRadius: 8,
-                                              spreadRadius: 0,
-                                              offset: const Offset(0, 4),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 12,
                                             ),
-                                          ],
-                                        ),
-                                        child: Material(
-                                          color: Colors.transparent,
-                                          child: InkWell(
-                                            onTap: () {
-                                              HapticFeedback.lightImpact();
-                                              Navigator.of(context).push(
-                                                PageRouteBuilder(
-                                                  pageBuilder:
-                                                      (
-                                                        context,
-                                                        animation,
-                                                        secondaryAnimation,
-                                                      ) => DonationMoneyPage(
-                                                        campaignId:
-                                                            campaign['id_campana'],
-                                                      ),
-                                                  transitionsBuilder:
-                                                      (
-                                                        context,
-                                                        animation,
-                                                        secondaryAnimation,
-                                                        child,
-                                                      ) {
-                                                        return SlideTransition(
-                                                          position: animation
-                                                              .drive(
-                                                                Tween(
-                                                                  begin:
-                                                                      const Offset(
-                                                                        0.0,
-                                                                        1.0,
-                                                                      ),
-                                                                  end: Offset
-                                                                      .zero,
-                                                                ),
-                                                              ),
-                                                          child: child,
-                                                        );
-                                                      },
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: const [
+                                                Icon(
+                                                  Icons.request_page_rounded,
+                                                  size: 18,
+                                                  color: white,
                                                 ),
-                                              );
-                                            },
-                                            borderRadius: BorderRadius.circular(
-                                              16,
-                                            ),
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 16,
-                                                    vertical: 12,
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  'Solicitar Donación',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: white,
                                                   ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  const Icon(
-                                                    Icons
-                                                        .volunteer_activism_rounded,
-                                                    size: 18,
-                                                    color: primaryDark,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  const Text(
-                                                    'Donar',
-                                                    style: TextStyle(
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      color: primaryDark,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ),

@@ -30,7 +30,7 @@ class CampaignModel extends Campaign {
       startDate: DateTime.parse(json['fecha_inicio']),
       endDate: DateTime.parse(json['fecha_fin']),
       organizer: json['organizador'],
-      imageUrl: json['imagen_url'],
+      imageUrl: json['imagen_url'] ?? '',
     );
   }
 

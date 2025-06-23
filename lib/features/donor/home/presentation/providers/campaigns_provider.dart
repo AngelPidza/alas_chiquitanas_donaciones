@@ -39,9 +39,9 @@ class CampaignsNotifier extends _$CampaignsNotifier {
           errorMessage: failure.message,
         );
       },
-      (shelves) {
-        print('[CampaignsNotifier] Campañas cargados: ${shelves.length}');
-        state = state.copyWith(isLoadingCampaigns: false, campaigns: shelves);
+      (campaigns) {
+        print('[CampaignsNotifier] Campañas cargados: ${campaigns.length}');
+        state = state.copyWith(isLoadingCampaigns: false, campaigns: campaigns);
       },
     );
   }
