@@ -58,7 +58,7 @@ final campaignsProvider = AutoDisposeProvider<List<Campaign>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CampaignsRef = AutoDisposeProviderRef<List<Campaign>>;
-String _$campaignsNotifierHash() => r'57704beb5a53bea083b5cee872a1cd95087d7ae7';
+String _$campaignsNotifierHash() => r'de779a564cbf565c1aa2856708ca0a70dafbd991';
 
 /// See also [CampaignsNotifier].
 @ProviderFor(CampaignsNotifier)

@@ -20,7 +20,6 @@ class CampaignsScreen extends ConsumerStatefulWidget {
 
 class CampaignsScreenState extends ConsumerState<CampaignsScreen>
     with TickerProviderStateMixin {
-  bool _isMounted = false;
   List<Campaign> campaigns = [];
   bool isLoading = true;
   String? _token;
@@ -42,7 +41,6 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
   @override
   void initState() {
     super.initState();
-    _isMounted = true;
     _initAnimations();
     _loadToken();
   }
@@ -85,7 +83,6 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
   void dispose() {
     _fadeController.dispose();
     _staggerController.dispose();
-    _isMounted = false;
     super.dispose();
   }
 
@@ -362,8 +359,8 @@ class CampaignsScreenState extends ConsumerState<CampaignsScreen>
         onRefresh: () async {
           HapticFeedback.lightImpact();
           _resetAnimations();
-          await ref.read(campaignsNotifierProvider.notifier).refreshCampaigns();
           // Las animaciones se reiniciarán automáticamente cuando se recarguen las campañas
+          await ref.read(campaignsNotifierProvider.notifier).refreshCampaigns();
         },
         color: accent,
         backgroundColor: white,

@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/entities/campaign.dart';
 import '../../../../../core/usecases/usecase.dart';
@@ -71,6 +72,7 @@ class CampaignsNotifier extends _$CampaignsNotifier {
   }
 
   Future<void> refreshCampaigns() async {
+    print('Token de usuario: ${sl<SharedPreferences>().getString('token')}');
     await Future.wait([loadCampaigns(), loadDonations()]);
   }
 

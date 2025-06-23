@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_donaciones_1/core/error/exceptions.dart';
 
 import '../../domain/entities/campaign.dart';
+import '../../domain/entities/donation_request.dart';
 import '/core/error/failures.dart';
 import '../../domain/repositories/donor_home_repository.dart';
 import '../datasources/donor_home_remote_data_source.dart';
@@ -16,6 +17,22 @@ class DonorHomeRepositoryImpl implements DonorHomeRepository {
     try {
       final campaigns = await remoteDataSource.getCampaigns();
       return Right(campaigns);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(e.message));
+    } on TokenExpiredException catch (e) {
+      return Left(AuthenticationFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('Unexpected error'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<DonationRequest>>> getDonationRequests() async {
+    try {
+      final donationRequests = await remoteDataSource.getDonationRequests();
+      return Right(donationRequests);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } on NetworkException catch (e) {

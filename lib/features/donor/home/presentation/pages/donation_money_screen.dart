@@ -1,11 +1,16 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_donaciones_1/core/network/dio_client.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../../../injection_container.dart';
 
 class DonationMoneyPage extends StatefulWidget {
   const DonationMoneyPage({super.key, required this.campaignId});
@@ -173,6 +178,27 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
     });
 
     try {
+      FormData formData = FormData.fromMap({
+        "imagen": await MultipartFile.fromFile(
+          _imageFile!.path,
+          filename: "comprobante.jpg",
+        ),
+      });
+      final responseImage = await sl<DioClient>().post(
+        "/upload",
+        data: formData,
+      );
+      final responseBodyImageUrl = responseImage.data;
+      print(
+        'Procesando imagen: ${responseBodyImageUrl['message'] ?? responseBodyImageUrl['error'] ?? 'Error desconocido'}',
+      );
+      if (responseImage.statusCode != 201) {
+        _showErrorSnackBar(
+          'Error al procesar imagen: ${responseBodyImageUrl['message'] ?? responseBodyImageUrl['error'] ?? 'Error desconocido'}',
+        );
+        return;
+      }
+
       final response = await http.post(
         Uri.parse('https://backenddonaciones.onrender.com/api/donaciones'),
         headers: {
@@ -187,9 +213,11 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
         }),
       );
       final responseBody = json.decode(response.body);
-      print(
-        'Procesando donación: ${responseBody['message'] ?? responseBody['error'] ?? 'Error desconocido'}',
-      );
+      if (kDebugMode) {
+        print(
+          'Procesando donación: ${responseBody['message'] ?? responseBody['error'] ?? 'Error desconocido'}',
+        );
+      }
       if (response.statusCode != 201) {
         _showErrorSnackBar(
           'Error al procesar donación: ${responseBody['message'] ?? responseBody['error'] ?? 'Error desconocido'}',
@@ -216,21 +244,18 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
           'estado_validacion': 'pendiente',
         }),
       );
-      print('''
+      //       print('''
 
-      https://backenddonaciones.onrender.com/api/donaciones-en-dinero/${responseBody['id_donacion']}
-      'monto': ${_montoController.text},
-      'divisa': $_selectedDivisa,
-      'nombre_cuenta': ${_nombreCuentaController.text},
-      'numero_cuenta': ${_numeroCuentaController.text},
-      'comprobante_url': ${base64.encode(_imageFile!.readAsBytesSync())},
-      'estado_validacion': 'pendiente',
+      //       https://backenddonaciones.onrender.com/api/donaciones-en-dinero/${responseBody['id']}
+      //       'monto': ${_montoController.text},
+      //       'divisa': $_selectedDivisa,
+      //       'nombre_cuenta': ${_nombreCuentaController.text},
+      //       'numero_cuenta': ${_numeroCuentaController.text},
+      //       'comprobante_url': ${responseBodyImageUrl['url']},
+      //       'estado_validacion': 'pendiente',
 
-''');
+      // ''');
       final responseMoneyBody = json.decode(responseMoney.body);
-      print(
-        'Error al procesar donación en dinero: ${responseMoneyBody['message'] ?? responseMoneyBody['error'] ?? 'Error desconocido'} - ${responseMoney.statusCode}',
-      );
       if (responseMoney.statusCode != 200) {
         _showErrorSnackBar(
           'Error al procesar donación en dinero: ${responseMoneyBody['message'] ?? responseMoneyBody['error'] ?? 'Error desconocido'}',
@@ -340,6 +365,7 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   }
 
   void _showErrorSnackBar(String message) {
+    print('Error: $message');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -529,16 +555,12 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
           ),
           prefixIcon: Container(
             margin: const EdgeInsets.all(12),
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               color: accent.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              Icons.currency_exchange_rounded,
-              color: accent,
-              size: 20,
-            ),
+            child: Icon(Icons.compare_arrows, color: accent, size: 30),
           ),
           filled: true,
           fillColor: cream.withOpacity(0.5),
@@ -688,7 +710,7 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
               _buildCustomTextField(
                 controller: _montoController,
                 label: 'Monto',
-                icon: Icons.attach_money_rounded,
+                icon: Icons.money,
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -938,6 +960,8 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset:
+          true, // Asegura que el contenido se mueva con el teclado
       backgroundColor: cream,
       extendBodyBehindAppBar: true,
       appBar: AppBar(

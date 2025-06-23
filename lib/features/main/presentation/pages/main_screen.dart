@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_donaciones_1/features/donor/home/presentation/pages/donations_request_screen.dart';
 import '/features/auth/presentation/pages/auth_wrapper_screen.dart';
 import '../../../donor/home/presentation/pages/campaigns_screen.dart';
 import '../../../donor/home/presentation/pages/my_donations_screen.dart';
@@ -164,7 +165,11 @@ class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final screens = [CampaignsScreen(), MyDonationsScreen()];
+    final screens = [
+      CampaignsScreen(),
+      MyDonationsScreen(),
+      DonationsRequestScreen(),
+    ];
 
     return Scaffold(
       backgroundColor: cream,
@@ -325,6 +330,25 @@ class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 label: 'Mis Donaciones',
+              ),
+              BottomNavigationBarItem(
+                icon: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.all(_currentIndex == 2 ? 8 : 4),
+                  decoration: BoxDecoration(
+                    color: _currentIndex == 2
+                        ? accent.withOpacity(0.2)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _currentIndex == 2
+                        ? Icons.collections_bookmark
+                        : Icons.collections_bookmark_outlined,
+                    size: 26,
+                  ),
+                ),
+                label: 'Solicitudes',
               ),
             ],
           ),

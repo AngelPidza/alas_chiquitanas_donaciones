@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class DonationRequestPage extends StatefulWidget {
   final String campaignId;
@@ -28,7 +30,6 @@ class DonationRequestPageState extends State<DonationRequestPage>
   final _detalleController = TextEditingController();
 
   bool _isLoading = false;
-  bool _isGettingLocation = false;
   bool _isUploadingImage = false;
   double? _latitud;
   double? _longitud;
@@ -39,6 +40,9 @@ class DonationRequestPageState extends State<DonationRequestPage>
 
   late AnimationController _slideController;
   late AnimationController _fadeController;
+
+  GoogleMapController? _mapController;
+  LatLng? _selectedLatLng;
 
   // Paleta de colores consistente
   static const Color primaryDark = Color(0xFF0D1B2A);
@@ -56,6 +60,7 @@ class DonationRequestPageState extends State<DonationRequestPage>
     super.initState();
     _initAnimations();
     _loadUserData();
+    _getCurrentLocation();
   }
 
   void _initAnimations() {
@@ -90,6 +95,7 @@ class DonationRequestPageState extends State<DonationRequestPage>
     _fadeController.dispose();
     _ubicacionController.dispose();
     _detalleController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -146,9 +152,7 @@ class DonationRequestPageState extends State<DonationRequestPage>
   }
 
   Future<void> _getCurrentLocation() async {
-    setState(() {
-      _isGettingLocation = true;
-    });
+    setState(() {});
 
     try {
       bool isLocationServiceEnabled =
@@ -188,6 +192,7 @@ class DonationRequestPageState extends State<DonationRequestPage>
       setState(() {
         _latitud = position.latitude;
         _longitud = position.longitude;
+        _selectedLatLng = LatLng(_latitud!, _longitud!);
         _ubicacionController.text =
             '${_latitud!.toStringAsFixed(6)}, ${_longitud!.toStringAsFixed(6)}';
       });
@@ -197,9 +202,7 @@ class DonationRequestPageState extends State<DonationRequestPage>
       print(e);
       _showErrorSnackBar('Error al obtener la ubicación: $e');
     } finally {
-      setState(() {
-        _isGettingLocation = false;
-      });
+      setState(() {});
     }
   }
 
@@ -332,6 +335,7 @@ class DonationRequestPageState extends State<DonationRequestPage>
 ''');
       if (response.statusCode == 201) {
         _showSuccessSnackBar('Solicitud de donación enviada correctamente');
+        if (!mounted) return;
         Navigator.of(context).pop();
       } else {
         final errorData = json.decode(response.body);
@@ -455,9 +459,61 @@ class DonationRequestPageState extends State<DonationRequestPage>
     );
   }
 
+  Widget _buildMapSelector() {
+    final initialLatLng =
+        _selectedLatLng ??
+        const LatLng(-17.722552, -63.174224); // CDMX por defecto
+    return SizedBox(
+      height: 250,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: GoogleMap(
+          initialCameraPosition: CameraPosition(
+            target: initialLatLng,
+            zoom: 15,
+          ),
+          myLocationEnabled: true,
+          onMapCreated: (controller) {
+            _mapController = controller;
+          },
+          markers: _selectedLatLng == null
+              ? {}
+              : {
+                  Marker(
+                    markerId: const MarkerId('selected'),
+                    position: _selectedLatLng!,
+                    draggable: true,
+                    onDragEnd: (newPos) {
+                      setState(() {
+                        _selectedLatLng = newPos;
+                        _latitud = newPos.latitude;
+                        _longitud = newPos.longitude;
+                      });
+                    },
+                  ),
+                },
+          onTap: (latLng) {
+            setState(() {
+              _selectedLatLng = latLng;
+              _latitud = latLng.latitude;
+              _longitud = latLng.longitude;
+            });
+          },
+          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+            Factory<OneSequenceGestureRecognizer>(
+              () => EagerGestureRecognizer(),
+            ),
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset:
+          true, // Asegura que el contenido se mueva con el teclado
       backgroundColor: cream,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -615,83 +671,13 @@ class DonationRequestPageState extends State<DonationRequestPage>
                           ),
                         ),
                         const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _ubicacionController,
-                          decoration: InputDecoration(
-                            hintText: 'Ingresa tu dirección o coordenadas',
-                            prefixIcon: const Icon(
-                              Icons.location_on_rounded,
-                              color: accent,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(
-                                color: lightBlue.withOpacity(0.3),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(
-                                color: lightBlue.withOpacity(0.3),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: const BorderSide(
-                                color: accent,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: cream.withOpacity(0.5),
+                        _buildMapSelector(),
+                        const SizedBox(height: 12),
+                        if (_selectedLatLng == null)
+                          const Text(
+                            'Toca el mapa para seleccionar tu ubicación',
+                            style: TextStyle(color: accentBlue, fontSize: 13),
                           ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'La ubicación es requerida';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _isGettingLocation
-                                ? null
-                                : _getCurrentLocation,
-                            icon: _isGettingLocation
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        white,
-                                      ),
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.my_location_rounded,
-                                    color: white,
-                                  ),
-                            label: Text(
-                              _isGettingLocation
-                                  ? 'Obteniendo ubicación...'
-                                  : 'Usar ubicación actual',
-                              style: const TextStyle(
-                                color: white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryBlue,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -793,7 +779,7 @@ class DonationRequestPageState extends State<DonationRequestPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Imagen (opcional)',
+                          'Imagen de la solicitud',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
