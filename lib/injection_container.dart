@@ -1,7 +1,11 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'core/network/dio_client.dart';
 
+import 'core/network/dio_client.dart';
+import 'features/donor/home/data/datasources/donor_home_remote_data_source.dart';
+import 'features/donor/home/data/repositories/donor_home_repository_impl.dart';
+import 'features/donor/home/domain/repositories/donor_home_repository.dart';
+import 'features/donor/home/domain/usecases/get_campaigns.dart';
 import 'features/volunteer/data/datasources/inventory_remote_data_source.dart';
 import 'features/volunteer/data/repositories/inventory_repository_impl.dart';
 import 'features/volunteer/domain/repositories/inventory_repository.dart';
@@ -16,22 +20,22 @@ final sl = GetIt.instance;
 Future<void> init() async {
   // //! Features - Donor
   // // Use cases
-  // sl.registerLazySingleton(() => GetWarehouses(sl()));
+  sl.registerLazySingleton(() => GetCampaigns(sl()));
   // sl.registerLazySingleton(() => GetShelves(sl()));
   // sl.registerLazySingleton(() => GetDonations(sl()));
   // sl.registerLazySingleton(() => UpdateDonationStatus(sl()));
   // sl.registerLazySingleton(() => DownloadExcelReport(sl()));
 
-  // // Repository
-  // sl.registerLazySingleton<InventoryRepository>(
-  //   () => InventoryRepositoryImpl(remoteDataSource: sl()),
-  // );
+  // Repository
+  sl.registerLazySingleton<DonorHomeRepository>(
+    () => DonorHomeRepositoryImpl(remoteDataSource: sl()),
+  );
 
   // // Data sources
-  // sl.registerLazySingleton<InventoryRemoteDataSource>(
-  //   () =>
-  //       InventoryRemoteDataSourceImpl(dioClient: sl(), sharedPreferences: sl()),
-  // );
+  sl.registerLazySingleton<DonorHomeRemoteDataSource>(
+    () =>
+        DonorHomeRemoteDataSourceImpl(dioClient: sl(), sharedPreferences: sl()),
+  );
 
   //! Features - Volunteer
   // Use cases

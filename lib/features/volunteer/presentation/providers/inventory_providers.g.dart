@@ -95,23 +95,24 @@ final downloadExcelReportProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef DownloadExcelReportRef = AutoDisposeProviderRef<DownloadExcelReport>;
-String _$isLoadingHash() => r'2986841d15f22aba89c73b53d8b3dba1b0a74f85';
+String _$isLoadingInventoryHash() =>
+    r'6b84d874dd683e0a3d1839d311857fed0181229f';
 
-/// See also [isLoading].
-@ProviderFor(isLoading)
-final isLoadingProvider = AutoDisposeProvider<bool>.internal(
-  isLoading,
-  name: r'isLoadingProvider',
+/// See also [isLoadingInventory].
+@ProviderFor(isLoadingInventory)
+final isLoadingInventoryProvider = AutoDisposeProvider<bool>.internal(
+  isLoadingInventory,
+  name: r'isLoadingInventoryProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$isLoadingHash,
+      : _$isLoadingInventoryHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef IsLoadingRef = AutoDisposeProviderRef<bool>;
+typedef IsLoadingInventoryRef = AutoDisposeProviderRef<bool>;
 String _$warehousesHash() => r'69a9c9b6e0418bf1ed102d386906a02819b433c2';
 
 /// See also [warehouses].
@@ -180,7 +181,7 @@ final isDownloadingProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef IsDownloadingRef = AutoDisposeProviderRef<bool>;
-String _$inventoryNotifierHash() => r'71e69c5a03559e082665e8d8352ed82037fe380c';
+String _$inventoryNotifierHash() => r'0658c5b0de5b3492171f40e1b72b338b3eefda36';
 
 /// See also [InventoryNotifier].
 @ProviderFor(InventoryNotifier)

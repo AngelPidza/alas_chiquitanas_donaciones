@@ -202,7 +202,7 @@ class InventoryNotifier extends _$InventoryNotifier {
 
 // Providers de estado derivados para optimización
 @riverpod
-bool isLoading(ref) {
+bool isLoadingInventory(ref) {
   final state = ref.watch(inventoryNotifierProvider);
   return state.isLoadingShelves ||
       state.isLoadingDonations ||

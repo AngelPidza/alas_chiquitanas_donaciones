@@ -3,19 +3,23 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_donaciones_1/features/donor/home/presentation/providers/campaigns_provider.dart';
+import 'package:flutter_donaciones_1/features/volunteer/presentation/providers/inventory_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../../core/constants/colors.dart';
 import 'donation_money_screen.dart';
 import '../../../map/presentation/pages/map_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-class CampaignsScreen extends StatefulWidget {
+class CampaignsScreen extends ConsumerStatefulWidget {
   const CampaignsScreen({super.key});
 
   @override
   CampaignsScreenState createState() => CampaignsScreenState();
 }
 
-class CampaignsScreenState extends State<CampaignsScreen>
+class CampaignsScreenState extends ConsumerState<CampaignsScreen>
     with TickerProviderStateMixin {
   bool _isMounted = false;
   List<dynamic> campaigns = [];
@@ -40,7 +44,7 @@ class CampaignsScreenState extends State<CampaignsScreen>
     super.initState();
     _isMounted = true;
     _initAnimations();
-    _loadCampaigns();
+    // _loadCampaigns();
   }
 
   void _initAnimations() {
@@ -62,86 +66,94 @@ class CampaignsScreenState extends State<CampaignsScreen>
     super.dispose();
   }
 
-  Future<void> _loadCampaigns() async {
-    try {
-      if (kDebugMode) {
-        print('Cargando campañas...');
-      }
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      _token = token;
+  // Future<void> _loadCampaigns() async {
+  //   try {
+  //     if (kDebugMode) {
+  //       print('Cargando campañas...');
+  //     }
+  //     final prefs = await SharedPreferences.getInstance();
+  //     final token = prefs.getString('token');
+  //     _token = token;
 
-      if (token == null) {
-        if (!_isMounted) return;
-        setState(() {
-          isLoading = false;
-        });
-        if (mounted) {
-          _showErrorSnackBar('Token no encontrado. Inicia sesión nuevamente.');
-        }
-        return;
-      }
+  //     if (token == null) {
+  //       if (!_isMounted) return;
+  //       setState(() {
+  //         isLoading = false;
+  //       });
+  //       if (mounted) {
+  //         _showErrorSnackBar('Token no encontrado. Inicia sesión nuevamente.');
+  //       }
+  //       return;
+  //     }
 
-      final response = await http
-          .get(
-            Uri.parse('https://backenddonaciones.onrender.com/api/campanas'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-            },
-          )
-          .timeout(Duration(seconds: 30));
+  //     final response = await http
+  //         .get(
+  //           Uri.parse('https://backenddonaciones.onrender.com/api/campanas'),
+  //           headers: {
+  //             'Authorization': 'Bearer $token',
+  //             'Content-Type': 'application/json',
+  //           },
+  //         )
+  //         .timeout(Duration(seconds: 30));
 
-      if (kDebugMode) {
-        print('Status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
-      }
+  //     if (kDebugMode) {
+  //       print('Status code: ${response.statusCode}');
+  //       print('Response body: ${response.body}');
+  //     }
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (!_isMounted) return;
-        setState(() {
-          campaigns = data is List ? data : [];
-          isLoading = false;
-        });
-        _fadeController.forward();
-        _staggerController.forward();
-      } else {
-        if (!_isMounted) return;
-        setState(() {
-          isLoading = false;
-        });
-        if (mounted) {
-          _showErrorSnackBar(
-            'Error al cargar campañas: ${json.decode(response.body)['message'] ?? json.decode(response.body)['error'] ?? 'Error desconocido'}',
-          );
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error loading campaigns: $e');
-      }
-      if (!_isMounted) return;
-      setState(() {
-        isLoading = false;
-      });
-      if (mounted) {
-        _showErrorSnackBar('Error al cargar campañas: $e');
-      }
-    }
-  }
+  //     if (response.statusCode == 200) {
+  //       final data = json.decode(response.body);
+  //       if (!_isMounted) return;
+  //       setState(() {
+  //         campaigns = data is List ? data : [];
+  //         isLoading = false;
+  //       });
+  //       _fadeController.forward();
+  //       _staggerController.forward();
+  //     } else {
+  //       if (!_isMounted) return;
+  //       setState(() {
+  //         isLoading = false;
+  //       });
+  //       if (mounted) {
+  //         _showErrorSnackBar(
+  //           'Error al cargar campañas: ${json.decode(response.body)['message'] ?? json.decode(response.body)['error'] ?? 'Error desconocido'}',
+  //         );
+  //       }
+  //     }
+  //   } catch (e) {
+  //     if (kDebugMode) {
+  //       print('Error loading campaigns: $e');
+  //     }
+  //     if (!_isMounted) return;
+  //     setState(() {
+  //       isLoading = false;
+  //     });
+  //     if (mounted) {
+  //       _showErrorSnackBar('Error al cargar campañas: $e');
+  //     }
+  //   }
+  // }
 
-  void _showErrorSnackBar(String message) {
+  void _showSnackBar(String message, Color color, IconData icon) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            Icon(Icons.error_outline, color: white),
+            Icon(icon, color: AppColors.white),
             const SizedBox(width: 8),
-            Expanded(child: Text(message)),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ],
         ),
-        backgroundColor: errorColor,
+        backgroundColor: color,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -325,6 +337,35 @@ class CampaignsScreenState extends State<CampaignsScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Escuchar cambios en los mensajes de error/éxito
+    ref.listen(
+      campaignsNotifierProvider.select((state) => state.successMessage),
+      (previous, next) {
+        if (next != null) {
+          _showSnackBar(next, AppColors.errorColor, Icons.error_outline);
+          // Limpiar el mensaje después de mostrarlo
+          ref.read(inventoryNotifierProvider.notifier).clearMessages();
+        }
+      },
+    );
+
+    ref.listen(
+      campaignsNotifierProvider.select((state) => state.successMessage),
+      (previous, next) {
+        if (next != null) {
+          _showSnackBar(
+            next,
+            AppColors.successColor,
+            Icons.check_circle_outline,
+          );
+          // Limpiar el mensaje después de mostrarlo
+          ref.read(inventoryNotifierProvider.notifier).clearMessages();
+        }
+      },
+    );
+
+    final isLoading = ref.watch(isLoadingCampaignsProvider);
+    campaigns = ref.watch(campaignsProvider);
     if (isLoading) {
       return _buildLoadingState();
     }
@@ -333,7 +374,8 @@ class CampaignsScreenState extends State<CampaignsScreen>
       return RefreshIndicator(
         onRefresh: () async {
           HapticFeedback.lightImpact();
-          await _loadCampaigns();
+          // await _loadCampaigns();
+          ref.watch(campaignsNotifierProvider.notifier).refreshCampaigns();
         },
         color: accent,
         backgroundColor: white,
@@ -360,7 +402,7 @@ class CampaignsScreenState extends State<CampaignsScreen>
           HapticFeedback.lightImpact();
           _fadeController.reset();
           _staggerController.reset();
-          await _loadCampaigns();
+          // await _loadCampaigns();
         },
         color: accent,
         backgroundColor: white,

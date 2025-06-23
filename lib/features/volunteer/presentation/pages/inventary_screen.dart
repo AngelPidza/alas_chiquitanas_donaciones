@@ -168,7 +168,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
       },
     );
 
-    final isLoading = ref.watch(isLoadingProvider);
+    final isLoading = ref.watch(isLoadingInventoryProvider);
 
     if (isLoading) {
       return _buildLoadingScreen();

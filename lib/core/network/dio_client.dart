@@ -11,6 +11,26 @@ class DioClient {
     : dio = Dio(BaseOptions(baseUrl: baseUrl)) {
     dio.interceptors.add(
       InterceptorsWrapper(
+        onResponse: (response, handler) {
+          // Verificar si hay error en el body aunque el código HTTP sea 200
+          if (response.data is Map &&
+              (response.data['error'] != null ||
+                  response.data['message'] != null)) {
+            final errorMessage = response.data['error'];
+
+            // Convertir a DioException para manejo consistente
+            final dioError = DioException(
+              requestOptions: response.requestOptions,
+              response: response,
+              type: DioExceptionType.badResponse,
+              message: errorMessage,
+            );
+
+            return handler.reject(dioError);
+          }
+
+          return handler.next(response);
+        },
         onRequest: (options, handler) {
           final token = sharedPreferences.getString('token');
           if (token != null) {
@@ -19,10 +39,7 @@ class DioClient {
           return handler.next(options);
         },
         onError: (DioException e, handler) {
-          if (e.response?.statusCode == 401) {
-            // Token expirado o inválido
-            throw TokenExpiredException();
-          }
+          // Elimina el throw directo, deja que _handleError se encargue
           return handler.next(e);
         },
       ),
@@ -71,7 +88,6 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      print('Error en la solicitud POST: ${e.message}');
       throw _handleError(e);
     }
   }
@@ -97,22 +113,38 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      print('Error en la solicitud PATCH: ${e.message}');
       throw _handleError(e);
     }
   }
 
   Exception _handleError(DioException e) {
+    // Primero verifica errores del body
+    if (e.response?.data is Map &&
+        (e.response?.data['error'] != null ||
+            e.response?.data['message'] != null)) {
+      final errorMessage =
+          e.response?.data['error'] ?? e.response?.data['message'];
+      return ServerException('${e.response?.statusCode} - $errorMessage');
+    }
+
+    // Luego verifica códigos de estado
+    if (e.response?.statusCode == 401) {
+      return TokenExpiredException(
+        ' ${e.response?.statusCode}: Token expirado o inválido',
+        e.response?.statusCode,
+      );
+    } else if (e.response?.statusCode == 404) {
+      return NotFoundException('Recurso no encontrado');
+    }
+
+    // Luego errores de conexión
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout ||
         e.type == DioExceptionType.sendTimeout) {
-      return NetworkException();
-    } else if (e.response?.statusCode == 401) {
-      return TokenExpiredException();
-    } else if (e.response?.statusCode == 404) {
-      return NotFoundException();
-    } else {
-      return ServerException();
+      return NetworkException('Tiempo de conexión agotado');
     }
+
+    // Fallback
+    return ServerException(e.message ?? 'Error desconocido del servidor');
   }
 }
