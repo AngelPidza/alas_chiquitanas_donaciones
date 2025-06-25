@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_donaciones_1/core/network/dio_client.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +12,8 @@ import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:gal/gal.dart';
 
 import '../../../../../injection_container.dart';
 
@@ -28,9 +33,13 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   final _formKey = GlobalKey<FormState>();
   final _montoFormKey = GlobalKey<FormState>();
 
+  // GlobalKey para capturar el QR como imagen
+  final GlobalKey _qrKey = GlobalKey();
+
   File? _imageFile;
   String? _selectedDivisa;
   bool _isLoading = false;
+  bool _isDownloading = false;
   final List<String> _divisas = ['BS'];
   String? _qrData;
 
@@ -44,7 +53,6 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   late AnimationController _slideController;
 
   // Controladores para las animaciones de los formularios
-
   late AnimationController _montoFormController;
   late AnimationController _qrFormController;
   late AnimationController _datosFormController;
@@ -125,6 +133,314 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
     _nombreCuentaController.dispose();
     _numeroCuentaController.dispose();
     super.dispose();
+  }
+
+  // Método para guardar el QR en la galería de fotos
+  Future<void> _downloadQR() async {
+    if (_qrData == null) {
+      _showErrorSnackBar('No hay código QR para descargar');
+      return;
+    }
+
+    setState(() {
+      _isDownloading = true;
+    });
+
+    try {
+      // Verificar si tenemos permisos para acceder a la galería
+      bool hasAccess = await Gal.hasAccess();
+      if (!hasAccess) {
+        // Solicitar permisos
+        hasAccess = await Gal.requestAccess();
+        if (!hasAccess) {
+          _showErrorSnackBar(
+            'Se necesitan permisos para guardar en la galería',
+          );
+          setState(() {
+            _isDownloading = false;
+          });
+          return;
+        }
+      }
+
+      // Capturar el widget QR como imagen
+      RenderRepaintBoundary boundary =
+          _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
+
+      // Crear archivo temporal
+      Directory tempDir = await getTemporaryDirectory();
+      String fileName =
+          'qr_donacion_${_montoController.text}BS_${DateTime.now().millisecondsSinceEpoch}.png';
+      File tempFile = File('${tempDir.path}/$fileName');
+      await tempFile.writeAsBytes(pngBytes);
+
+      // Guardar en la galería usando Gal
+      await Gal.putImage(tempFile.path, album: 'QR Donaciones');
+
+      // Limpiar archivo temporal
+      await tempFile.delete();
+
+      _showSuccessSnackBar('✅ QR guardado en tu galería de fotos');
+      _showGallerySuccessDialog();
+
+      // Vibración de éxito
+      HapticFeedback.heavyImpact();
+    } catch (e) {
+      print('Error al guardar QR en galería: $e');
+      _showErrorSnackBar('Error al guardar en galería: $e');
+    } finally {
+      setState(() {
+        _isDownloading = false;
+      });
+    }
+  }
+
+  // Método alternativo para directorio de app (por si falla la galería)
+  Future<void> _saveQRToAppDirectory() async {
+    if (_qrData == null) {
+      _showErrorSnackBar('No hay código QR para guardar');
+      return;
+    }
+
+    setState(() {
+      _isDownloading = true;
+    });
+
+    try {
+      // Capturar el widget QR como imagen
+      RenderRepaintBoundary boundary =
+          _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
+
+      // Obtener directorio accesible sin permisos
+      Directory? directory;
+      String directoryName = '';
+
+      if (Platform.isAndroid) {
+        // Usar directorio externo de la app (no requiere permisos)
+        directory = await getExternalStorageDirectory();
+        directoryName = 'Almacenamiento externo de la app';
+      } else {
+        // Para iOS usar directorio de documentos
+        directory = await getApplicationDocumentsDirectory();
+        directoryName = 'Documentos de la app';
+      }
+
+      if (directory != null) {
+        // Crear subdirectorio para QRs si no existe
+        Directory qrDirectory = Directory('${directory.path}/QR_Donaciones');
+        if (!await qrDirectory.exists()) {
+          await qrDirectory.create(recursive: true);
+        }
+
+        String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+        String fileName =
+            'qr_donacion_${_montoController.text}BS_$timestamp.png';
+        File file = File('${qrDirectory.path}/$fileName');
+
+        await file.writeAsBytes(pngBytes);
+
+        _showSuccessSnackBar('QR guardado en $directoryName/QR_Donaciones/');
+
+        // Vibración de éxito
+        HapticFeedback.heavyImpact();
+
+        // Mostrar dialog con la ubicación del archivo
+        _showFileLocationDialog(file.path);
+      } else {
+        _showErrorSnackBar(
+          'No se pudo acceder al directorio de almacenamiento',
+        );
+      }
+    } catch (e) {
+      print('Error al descargar QR: $e');
+      _showErrorSnackBar('Error al guardar QR: $e');
+    } finally {
+      setState(() {
+        _isDownloading = false;
+      });
+    }
+  }
+
+  // Mostrar diálogo de éxito para galería
+  void _showGallerySuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.photo_library, color: successColor, size: 28),
+              const SizedBox(width: 12),
+              const Text(
+                'QR en tu Galería',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: primaryDark,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '¡Perfecto! El código QR se ha guardado en tu galería de fotos.',
+                style: TextStyle(fontSize: 16, color: accentBlue),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: successColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: successColor.withOpacity(0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.photo_album, color: successColor, size: 32),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Abre tu app de "Fotos" o "Galería" para verlo',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: primaryDark,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Se guardó en el álbum "QR Donaciones"',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: lightBlue,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: successColor,
+                  foregroundColor: white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  '¡Genial!',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Mostrar diálogo con la ubicación del archivo
+  void _showFileLocationDialog(String filePath) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.check_circle, color: successColor, size: 28),
+              const SizedBox(width: 12),
+              const Text(
+                'QR Guardado',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: primaryDark,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'El código QR se ha guardado exitosamente en:',
+                style: TextStyle(fontSize: 16, color: accentBlue),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: cream.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  filePath,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: primaryDark,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Puedes acceder al archivo desde el explorador de archivos de tu dispositivo.',
+                style: TextStyle(fontSize: 14, color: lightBlue),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+              child: Text(
+                'Entendido',
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _pickImage() async {
@@ -244,17 +560,7 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
           'estado_validacion': 'pendiente',
         }),
       );
-      //       print('''
 
-      //       https://backenddonaciones.onrender.com/api/donaciones-en-dinero/${responseBody['id']}
-      //       'monto': ${_montoController.text},
-      //       'divisa': $_selectedDivisa,
-      //       'nombre_cuenta': ${_nombreCuentaController.text},
-      //       'numero_cuenta': ${_numeroCuentaController.text},
-      //       'comprobante_url': ${responseBodyImageUrl['url']},
-      //       'estado_validacion': 'pendiente',
-
-      // ''');
       final responseMoneyBody = json.decode(responseMoney.body);
       if (responseMoney.statusCode != 200) {
         _showErrorSnackBar(
@@ -798,22 +1104,62 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
               ),
               const SizedBox(height: 24),
               if (_qrData != null)
-                Container(
-                  height: 200,
-                  width: 200,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cream.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: PrettyQrView.data(
-                    data: _qrData!,
-                    decoration: const PrettyQrDecoration(
-                      shape: PrettyQrSmoothSymbol(color: primaryDark),
+                RepaintBoundary(
+                  key: _qrKey,
+                  child: Container(
+                    height: 200,
+                    width: 200,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: PrettyQrView.data(
+                      data: _qrData!,
+                      decoration: const PrettyQrDecoration(
+                        shape: PrettyQrSmoothSymbol(color: primaryDark),
+                      ),
                     ),
                   ),
                 ),
               const SizedBox(height: 16),
+
+              // Botón de descarga del QR
+              if (_qrData != null)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isDownloading ? null : _downloadQR,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: successColor,
+                      foregroundColor: white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: _isDownloading
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(white),
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Icon(Icons.download_rounded, size: 20),
+                    label: Text(
+                      _isDownloading ? 'Descargando...' : 'Descargar QR',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 16),
+
               // Cargar el comprobante
               GestureDetector(
                 onTap: () {
@@ -834,7 +1180,6 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
                       color: const Color.fromARGB(38, 252, 249, 249),
                     ),
                   ),
-
                   child: _imageFile == null
                       ? Center(
                           child: Text(
@@ -960,8 +1305,7 @@ class DonationMoneyPageState extends State<DonationMoneyPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset:
-          true, // Asegura que el contenido se mueva con el teclado
+      resizeToAvoidBottomInset: true,
       backgroundColor: cream,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
