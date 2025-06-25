@@ -300,6 +300,9 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
     );
   }
 
+  // Agregar esta variable de estado en tu clase
+  bool _isStatsExpanded = false;
+
   Widget _buildStatsHeader(
     List<dynamic> groupedDonations,
     List<dynamic> moneyDonations,
@@ -331,82 +334,122 @@ class MyDonationsScreenState extends ConsumerState<MyDonationsScreen>
           ),
           child: Column(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(16),
+              // Header que siempre se muestra
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isStatsExpanded = !_isStatsExpanded;
+                  });
+                },
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        Icons.analytics_rounded,
+                        color: white,
+                        size: 28,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.analytics_rounded,
-                      color: white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Tu Impacto',
-                          style: TextStyle(
-                            color: white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tu Impacto',
+                            style: TextStyle(
+                              color: white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Resumen de todas tus contribuciones',
-                          style: TextStyle(color: lightBlue, fontSize: 14),
-                        ),
-                      ],
+                          Text(
+                            'Resumen de todas tus contribuciones',
+                            style: TextStyle(color: lightBlue, fontSize: 14),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    AnimatedRotation(
+                      duration: const Duration(milliseconds: 300),
+                      turns: _isStatsExpanded ? 0.5 : 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          Icons.arrow_drop_down,
+                          color: white,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatContainer(
-                      value: '${groupedDonations.length}',
-                      label: 'Donaciones\nen Especie',
-                      icon: Icons.inventory_2_rounded,
-                      color: accent,
-                    ),
-                  ),
-                  Container(
-                    height: 60,
-                    width: 1,
-                    color: white.withOpacity(0.2),
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                  Expanded(
-                    child: _buildStatContainer(
-                      value: '${moneyDonations.length}',
-                      label: 'Donaciones\nen Dinero',
-                      icon: Icons.attach_money_rounded,
-                      color: successColor,
-                    ),
-                  ),
-                  Container(
-                    height: 60,
-                    width: 1,
-                    color: white.withOpacity(0.2),
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                  Expanded(
-                    child: _buildStatContainer(
-                      value: '\$${totalMoney.toStringAsFixed(0)}',
-                      label: 'Total\nDonado',
-                      icon: Icons.volunteer_activism_rounded,
-                      color: accent,
-                    ),
-                  ),
-                ],
+
+              // Contenido expandible con animación
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _isStatsExpanded
+                    ? Column(
+                        children: [
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildStatContainer(
+                                  value: '${groupedDonations.length}',
+                                  label: 'Donaciones\nen Especie',
+                                  icon: Icons.inventory_2_rounded,
+                                  color: accent,
+                                ),
+                              ),
+                              Container(
+                                height: 60,
+                                width: 1,
+                                color: white.withOpacity(0.2),
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                              ),
+                              Expanded(
+                                child: _buildStatContainer(
+                                  value: '${moneyDonations.length}',
+                                  label: 'Donaciones\nen Dinero',
+                                  icon: Icons.attach_money_rounded,
+                                  color: successColor,
+                                ),
+                              ),
+                              Container(
+                                height: 60,
+                                width: 1,
+                                color: white.withOpacity(0.2),
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                              ),
+                              Expanded(
+                                child: _buildStatContainer(
+                                  value: '\$${totalMoney.toStringAsFixed(0)}',
+                                  label: 'Total\nDonado',
+                                  icon: Icons.volunteer_activism_rounded,
+                                  color: accent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
               ),
             ],
           ),

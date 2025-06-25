@@ -39,7 +39,9 @@ class DonorHomeRepositoryImpl implements DonorHomeRepository {
       return Left(NetworkFailure(e.message));
     } on TokenExpiredException catch (e) {
       return Left(AuthenticationFailure(e.message));
-    } catch (e) {
+    } catch (e, stack) {
+      print('Error inesperado en getDonationRequests: $e');
+      print('Stack: $stack');
       return Left(ServerFailure('Unexpected error'));
     }
   }

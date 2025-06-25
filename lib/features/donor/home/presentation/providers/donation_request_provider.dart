@@ -31,7 +31,7 @@ class DonationRequestNotifier extends _$DonationRequestNotifier {
     result.fold(
       (failure) {
         print(
-          '[CampaignsNotifier] Error al cargar campañas: ${failure.message}',
+          '[DonationRequestNotifier] Error al cargar solicitudes: ${failure.message}',
         );
         state = state.copyWith(
           isLoadingDonationRequest: false,
@@ -39,7 +39,9 @@ class DonationRequestNotifier extends _$DonationRequestNotifier {
         );
       },
       (campaigns) {
-        print('[CampaignsNotifier] Campañas cargados: ${campaigns.length}');
+        print(
+          '[DonationRequestNotifierw] Solicitudes cargadas: ${campaigns.length}',
+        );
         state = state.copyWith(
           isLoadingDonationRequest: false,
           donationRequests: campaigns,

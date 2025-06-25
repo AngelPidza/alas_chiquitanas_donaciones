@@ -27,11 +27,11 @@ class DonationRequestModel extends DonationRequest {
       requestId: json['id_solicitud'],
       donorId: json['id_donante'],
       donorName: json['donante'],
-      location: json['Ubicacion'],
-      requestDetails: json['Detalle_solicitud'],
-      latitude: json['latitud'],
-      longitude: json['longitud'],
-      imageUrl: json['foto_url'],
+      location: json['Ubicacion'] ?? '',
+      requestDetails: json['Detalle_solicitud'] ?? '',
+      latitude: json['latitud'] ?? 0.0,
+      longitude: json['longitud'] ?? 0.0,
+      imageUrl: json['foto_url'] ?? '',
     );
   }
   Map<String, dynamic> toJson() => {

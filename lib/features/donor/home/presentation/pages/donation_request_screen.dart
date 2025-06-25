@@ -155,10 +155,13 @@ class DonationRequestPageState extends State<DonationRequestPage>
     setState(() {});
 
     try {
-      bool isLocationServiceEnabled =
-          await Geolocator.isLocationServiceEnabled();
+      bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!isLocationServiceEnabled) {
-        _showErrorSnackBar('Los servicios de ubicación están deshabilitados.');
+        setState(() {
+          _latitud = null;
+          _longitud = null;
+        });
+        _showLocationWarning('Los servicios de ubicación están deshabilitados');
         return;
       }
 
@@ -166,27 +169,26 @@ class DonationRequestPageState extends State<DonationRequestPage>
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          _showErrorSnackBar('Permisos de ubicación denegados.');
+          setState(() {
+            _latitud = null;
+            _longitud = null;
+          });
+          _showLocationWarning('Permisos de ubicación denegados');
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        _showErrorSnackBar('Permisos de ubicación denegados permanentemente.');
+        setState(() {
+          _latitud = null;
+          _longitud = null;
+        });
+        _showLocationWarning('Permisos de ubicación denegados permanentemente. Por favor, habilítalos en la configuración del dispositivo.');
         return;
-      }
-      if (permission == LocationPermission.deniedForever) {
-        print('🚫 Permiso de ubicación denegado permanentemente.');
-        // Aquí puedes mostrar un diálogo o redirigir a configuración.
-      } else if (permission == LocationPermission.denied) {
-        print('🚫 Permiso de ubicación denegado.');
-      } else if (permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always) {
-        print('✅ Permiso de ubicación concedido.');
       }
 
       Position position = await Geolocator.getCurrentPosition(
-        locationSettings: LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
 
       setState(() {
@@ -199,11 +201,65 @@ class DonationRequestPageState extends State<DonationRequestPage>
 
       _showSuccessSnackBar('Ubicación obtenida correctamente');
     } catch (e) {
-      print(e);
-      _showErrorSnackBar('Error al obtener la ubicación: $e');
-    } finally {
-      setState(() {});
+      print('Error al obtener ubicación: $e');
+      setState(() {
+        _latitud = null;
+        _longitud = null;
+      });
+      _showLocationWarning('Error al obtener la ubicación. Por favor, inténtalo de nuevo.');
     }
+  }
+
+  void _showLocationWarning(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.location_off, color: errorColor),
+            const SizedBox(width: 8),
+            const Text('Ubicación Requerida'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 12),
+            const Text(
+              'Para continuar con la solicitud de donación, necesitamos acceder a tu ubicación.',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _getCurrentLocation();
+            },
+            child: const Text('Reintentar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await Geolocator.openAppSettings();
+              if (!context.mounted) return;
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Abrir Configuración'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickImage() async {
@@ -294,7 +350,7 @@ class DonationRequestPageState extends State<DonationRequestPage>
   Future<void> _submitRequest() async {
     if (!_formKey.currentState!.validate()) return;
     if (_latitud == null || _longitud == null) {
-      _showErrorSnackBar('Por favor, obtén tu ubicación actual');
+      _showLocationWarning('Para enviar la solicitud, necesitamos tu ubicación actual');
       return;
     }
     if (_token == null || _userId == null) {

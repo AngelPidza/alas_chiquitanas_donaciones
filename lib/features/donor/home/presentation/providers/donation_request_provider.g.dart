@@ -62,7 +62,7 @@ final donationRequestsProvider =
 // ignore: unused_element
 typedef DonationRequestsRef = AutoDisposeProviderRef<List<DonationRequest>>;
 String _$donationRequestNotifierHash() =>
-    r'75cdfa02ce6482a65480d72b302e7cc5377e149f';
+    r'e16e45304d366360234cea15746d1ddf113b10cc';
 
 /// See also [DonationRequestNotifier].
 @ProviderFor(DonationRequestNotifier)

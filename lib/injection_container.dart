@@ -6,6 +6,7 @@ import 'features/donor/home/data/datasources/donor_home_remote_data_source.dart'
 import 'features/donor/home/data/repositories/donor_home_repository_impl.dart';
 import 'features/donor/home/domain/repositories/donor_home_repository.dart';
 import 'features/donor/home/domain/usecases/get_campaigns.dart';
+import 'features/donor/home/domain/usecases/get_donations_request.dart';
 import 'features/volunteer/data/datasources/inventory_remote_data_source.dart';
 import 'features/volunteer/data/repositories/inventory_repository_impl.dart';
 import 'features/volunteer/domain/repositories/inventory_repository.dart';
@@ -20,6 +21,7 @@ final sl = GetIt.instance;
 Future<void> init() async {
   // //! Features - Donor
   // // Use cases
+  sl.registerLazySingleton(() => GetDonationsRequest(sl()));
   sl.registerLazySingleton(() => GetCampaigns(sl()));
   // sl.registerLazySingleton(() => GetShelves(sl()));
   // sl.registerLazySingleton(() => GetDonations(sl()));

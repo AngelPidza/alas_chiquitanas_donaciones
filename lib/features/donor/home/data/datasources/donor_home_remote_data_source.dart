@@ -27,7 +27,8 @@ class DonorHomeRemoteDataSourceImpl implements DonorHomeRemoteDataSource {
 
   @override
   Future<List<DonationRequestModel>> getDonationRequests() async {
-    final response = await dioClient.get('/solicitudesRecoleccion');
+    final idDonor = sharedPreferences.getInt('donante_id');
+    final response = await dioClient.get('/solicitudesRecoleccion/$idDonor');
     final List<dynamic> jsonResponse = response.data;
     return jsonResponse
         .map((json) => DonationRequestModel.fromJson(json))

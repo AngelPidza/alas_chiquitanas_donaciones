@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../domain/entities/donation_request.dart';
 import '../providers/donation_request_provider.dart';
@@ -383,21 +384,32 @@ class DonationRequestCard extends StatelessWidget {
         backgroundColor: AppColors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Ubicación de recolección', style: AppTextStyles.subtitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Latitud: ${request.latitude}', style: AppTextStyles.bodyText),
-            Text(
-              'Longitud: ${request.longitude}',
-              style: AppTextStyles.bodyText,
+        content: SizedBox(
+          width: 300,
+          height: 300,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: LatLng(request.latitude, request.longitude),
+                zoom: 16,
+              ),
+              markers: {
+                Marker(
+                  markerId: const MarkerId('ubicacion'),
+                  position: LatLng(request.latitude, request.longitude),
+                ),
+              },
+              zoomControlsEnabled: false,
+              myLocationButtonEnabled: false,
+              scrollGesturesEnabled:
+                  false, // Desactiva scroll para evitar conflictos
+              zoomGesturesEnabled: false, // Desactiva zoom por gestos
+              tiltGesturesEnabled: false, // Desactiva inclinación
+              rotateGesturesEnabled: false, // Desactiva rotación
+              mapType: MapType.normal,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Dirección: ${request.location}',
-              style: AppTextStyles.caption,
-            ),
-          ],
+          ),
         ),
         actions: [
           Container(
@@ -460,7 +472,6 @@ class _DonationsRequestScreenState extends ConsumerState<DonationsRequestScreen>
   late AnimationController _fadeController;
   late AnimationController _staggerController;
   late TextEditingController _searchController;
-  String _currentFilter = 'Todos';
 
   @override
   void initState() {
@@ -524,27 +535,12 @@ class _DonationsRequestScreenState extends ConsumerState<DonationsRequestScreen>
                         opacity: _fadeController,
                         child: Row(
                           children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: IconButton(
-                                onPressed: () {
-                                  HapticFeedback.selectionClick();
-                                  Navigator.of(context).pop();
-                                },
-                                icon: const Icon(
-                                  Icons.arrow_back_ios_new,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  SizedBox(height: 12),
                                   Text(
                                     'Solicitudes de',
                                     style: AppTextStyles.caption.copyWith(
@@ -560,22 +556,6 @@ class _DonationsRequestScreenState extends ConsumerState<DonationsRequestScreen>
                                 ],
                               ),
                             ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: IconButton(
-                                onPressed: () {
-                                  HapticFeedback.selectionClick();
-                                  _showFilterDialog();
-                                },
-                                icon: const Icon(
-                                  Icons.filter_list,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -589,36 +569,36 @@ class _DonationsRequestScreenState extends ConsumerState<DonationsRequestScreen>
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: AppShadows.standard,
                           ),
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: _onSearchChanged,
-                            decoration: InputDecoration(
-                              hintText: 'Buscar por donante o ubicación...',
-                              hintStyle: AppTextStyles.caption,
-                              prefixIcon: Icon(
-                                Icons.search,
-                                color: AppColors.lightBlue,
-                              ),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      onPressed: () {
-                                        HapticFeedback.selectionClick();
-                                        _searchController.clear();
-                                        _onSearchChanged('');
-                                      },
-                                      icon: Icon(
-                                        Icons.clear,
-                                        color: AppColors.lightBlue,
-                                      ),
-                                    )
-                                  : null,
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                            ),
-                          ),
+                          // child: TextField(
+                          //   controller: _searchController,
+                          //   onChanged: _onSearchChanged,
+                          //   decoration: InputDecoration(
+                          //     hintText: 'Buscar por donante o ubicación...',
+                          //     hintStyle: AppTextStyles.caption,
+                          //     prefixIcon: Icon(
+                          //       Icons.search,
+                          //       color: AppColors.lightBlue,
+                          //     ),
+                          //     suffixIcon: _searchController.text.isNotEmpty
+                          //         ? IconButton(
+                          //             onPressed: () {
+                          //               HapticFeedback.selectionClick();
+                          //               _searchController.clear();
+                          //               _onSearchChanged('');
+                          //             },
+                          //             icon: Icon(
+                          //               Icons.clear,
+                          //               color: AppColors.lightBlue,
+                          //             ),
+                          //           )
+                          //         : null,
+                          //     border: InputBorder.none,
+                          //     contentPadding: const EdgeInsets.symmetric(
+                          //       horizontal: 16,
+                          //       vertical: 16,
+                          //     ),
+                          //   ),
+                          //),
                         ),
                       ),
                     ],
@@ -627,11 +607,22 @@ class _DonationsRequestScreenState extends ConsumerState<DonationsRequestScreen>
               ),
               // Contenido principal
               Expanded(
-                child: donationRequestState.when(
-                  initial: () => _buildLoadingState(),
-                  loading: () => _buildLoadingState(),
-                  loaded: (requests) => _buildLoadedState(requests),
-                  error: (message) => _buildErrorState(message),
+                child: Builder(
+                  builder: (context) {
+                    if (donationRequestState.isLoadingDonationRequest) {
+                      return _buildLoadingState();
+                    } else if (donationRequestState.errorMessage != null) {
+                      return _buildErrorState(
+                        donationRequestState.errorMessage!,
+                      );
+                    } else if (donationRequestState.donationRequests.isEmpty) {
+                      return _buildEmptyState();
+                    } else {
+                      return _buildLoadedState(
+                        donationRequestState.donationRequests,
+                      );
+                    }
+                  },
                 ),
               ),
             ],
@@ -839,102 +830,6 @@ class _DonationsRequestScreenState extends ConsumerState<DonationsRequestScreen>
     );
   }
 
-  void _onSearchChanged(String query) {
-    // Debounce la búsqueda
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (_searchController.text == query) {
-        ref
-            .read(donationRequestNotifierProvider.notifier)
-            .searchDonationRequests(query);
-      }
-    });
-  }
-
-  void _showFilterDialog() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Filtrar solicitudes', style: AppTextStyles.titleMain),
-            const SizedBox(height: 24),
-            _buildFilterOption('Todos'),
-            _buildFilterOption('Pendientes'),
-            _buildFilterOption('En proceso'),
-            _buildFilterOption('Completadas'),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterOption(String filter) {
-    final isSelected = _currentFilter == filter;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? AppColors.accent.withOpacity(0.1)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSelected
-              ? AppColors.accent
-              : AppColors.lightBlue.withOpacity(0.3),
-          width: 1.5,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            setState(() {
-              _currentFilter = filter;
-            });
-            Navigator.pop(context);
-            // Aplicar filtro aquí
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Row(
-              children: [
-                Icon(
-                  isSelected ? Icons.check_circle : Icons.circle_outlined,
-                  color: isSelected ? AppColors.accent : AppColors.lightBlue,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  filter,
-                  style: AppTextStyles.bodyText.copyWith(
-                    color: isSelected ? AppColors.accent : AppColors.accentBlue,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   void _navigateToDetail(DonationRequest request) {
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -992,7 +887,7 @@ class DonationRequestDetailScreen extends StatelessWidget {
       ),
       body: Center(
         child: Text(
-          'Detalle de la solicitud #${request.idSolicitud}',
+          'Detalle de la solicitud #${request.requestId}',
           style: AppTextStyles.titleMain,
         ),
       ),
